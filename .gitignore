@@ -1,0 +1,29 @@
+# Data (regeneratable, large)
+data/raw/
+data/processed/
+data/factors/
+data/target_price/
+
+# Keep curated assets
+!data/stocks/
+
+# Logs and tmp
+*.log
+*.tmp
+backfill_*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Outputs
+news_*.json

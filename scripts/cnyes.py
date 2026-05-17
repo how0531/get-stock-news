@@ -1,0 +1,66 @@
+"""鉅亨網 cnyes.com 新聞爬蟲 — 透過公開 JSON API。"""
+from __future__ import annotations
+
+import time
+from datetime import datetime
+from typing import Iterable
+
+import requests
+
+BASE = "https://api.cnyes.com/media/api/v1/newslist/category/{}"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Origin": "https://news.cnyes.com",
+    "Referer": "https://news.cnyes.com/",
+}
+
+CATEGORIES = {
+    "headline": "頭條",
+    "wd_stock": "國際股市",
+    "tw_stock": "台股",
+    "forex": "外匯",
+    "future": "期貨",
+}
+
+
+def _get(category: str, limit: int = 30, page: int = 1) -> list[dict]:
+    resp = requests.get(
+        BASE.format(category),
+        params={"limit": limit, "page": page},
+        headers=HEADERS,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()["items"]["data"]
+
+
+def fetch(categories: Iterable[str] | None = None, limit: int = 20) -> list[dict]:
+    """抓取鉅亨網新聞，回傳標準化欄位。"""
+    cats = list(categories) if categories else list(CATEGORIES.keys())
+    out: list[dict] = []
+    for cat in cats:
+        try:
+            for item in _get(cat, limit=limit):
+                out.append(
+                    {
+                        "source": "cnyes",
+                        "category": CATEGORIES.get(cat, cat),
+                        "title": item.get("title"),
+                        "summary": item.get("summary"),
+                        "url": f"https://news.cnyes.com/news/id/{item.get('newsId')}",
+                        "published_at": datetime.fromtimestamp(
+                            item.get("publishAt", 0)
+                        ).isoformat(),
+                        "keywords": item.get("keyword", ""),
+                    }
+                )
+        except Exception as e:
+            print(f"[cnyes] {cat} 抓取失敗: {e}")
+        time.sleep(1)
+    return out
+
+
+if __name__ == "__main__":
+    for n in fetch(limit=5):
+        print(n["published_at"], n["category"], n["title"])
+        print("  ", n["url"])
