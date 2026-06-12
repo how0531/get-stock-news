@@ -1,29 +1,21 @@
-"""盤中快訊監看 — 輪詢低延遲來源，去重後比對個股、寫入事件串流並推播。
+"""盤中快訊監看 — 輪詢低延遲來源，去重後比對個股、寫入事件串流。
 
-下游介接方式有二（可並用）：
-  1. 事件串流：每則新事件 append 至 data/stream/YYYY-MM-DD.jsonl，
-     供「股市資訊大腦」tail 讀取（schema 見 SKILL.md「下游介接合約」）。
-  2. 即時推播：設定環境變數後自動啟用
-       TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID  -> Telegram Bot
-       DISCORD_WEBHOOK_URL                    -> Discord webhook
-     （LINE Notify 已於 2025-03-31 終止服務，勿再使用）
+本 skill 只負責前端資料搜集：產出事件串流即為終點。
+每則新事件 append 至 data/stream/YYYY-MM-DD.jsonl，下游 skill
+（股市資訊大腦、快訊推播）自行 tail 讀取，schema 見 SKILL.md「下游介接合約」。
 
 用法：
   python scripts/watch_intraday.py --once                # 單次輪詢（測試）
-  python scripts/watch_intraday.py --interval 60 --push  # 持續監看 + 推播
+  python scripts/watch_intraday.py --interval 60         # 持續監看
   python scripts/watch_intraday.py --sources cnyes,cna,announce --market-hours-only
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
-import re
 import time as time_mod
 from datetime import datetime, time
 from pathlib import Path
-
-import requests
 
 try:
     from .cnyes import fetch as fetch_cnyes
@@ -106,39 +98,6 @@ def classify(title: str) -> list[str]:
 
 
 # --------------------------------------------------------------------------- #
-# 推播通道
-# --------------------------------------------------------------------------- #
-
-def push_channels() -> list[str]:
-    out = []
-    if os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"):
-        out.append("telegram")
-    if os.environ.get("DISCORD_WEBHOOK_URL"):
-        out.append("discord")
-    return out
-
-
-def push(msg: str) -> None:
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-    if token and chat_id:
-        try:
-            requests.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json={"chat_id": chat_id, "text": msg, "disable_web_page_preview": True},
-                timeout=10,
-            ).raise_for_status()
-        except Exception as e:
-            print(f"[push] telegram 失敗: {e}")
-    webhook = os.environ.get("DISCORD_WEBHOOK_URL")
-    if webhook:
-        try:
-            requests.post(webhook, json={"content": msg[:1900]}, timeout=10).raise_for_status()
-        except Exception as e:
-            print(f"[push] discord 失敗: {e}")
-
-
-# --------------------------------------------------------------------------- #
 # 輪詢
 # --------------------------------------------------------------------------- #
 
@@ -163,8 +122,6 @@ def poll_once(
     sources: list[str],
     seen: list[str],
     alias_index: list[tuple[str, str]],
-    do_push: bool,
-    include_ticks: bool,
 ) -> int:
     seen_set = set(seen)
     new_count = 0
@@ -202,15 +159,6 @@ def poll_once(
 
         print(f"  + [{item['source']}] {item['title']}  tickers={tickers} tags={tags}")
 
-        # 推播原則：有比對到個股、或屬 signal 類；純價格 tick 預設不推
-        is_tick = "noise_intraday_tick" in tags
-        worth = (tickers or any(t.startswith("signal_") for t in tags)) and (
-            include_ticks or not is_tick
-        )
-        if do_push and worth:
-            label = " ".join(tickers[:3]) or item.get("category", "")
-            push(f"[{item['source']}|{label}] {item['title']}\n{item.get('url', '')}")
-
     return new_count
 
 
@@ -220,15 +168,12 @@ def in_market_hours(now: datetime | None = None) -> bool:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="盤中快訊監看")
+    ap = argparse.ArgumentParser(description="盤中快訊監看（只搜集，不推播）")
     ap.add_argument("--sources", default=",".join(DEFAULT_SOURCES),
                     help=f"逗號分隔來源（預設 {','.join(DEFAULT_SOURCES)}；"
                          f"可用 cnyes,announce,{','.join(RSS_SOURCES)}）")
     ap.add_argument("--interval", type=int, default=60, help="輪詢間隔秒數（預設 60）")
     ap.add_argument("--once", action="store_true", help="只輪詢一次後結束（測試用）")
-    ap.add_argument("--push", action="store_true", help="啟用推播（需設定環境變數）")
-    ap.add_argument("--include-ticks", action="store_true",
-                    help="連「盤中速報」純價格 tick 也推播")
     ap.add_argument("--market-hours-only", action="store_true",
                     help="僅在台股盤中時段（08:30-13:45）輪詢")
     args = ap.parse_args()
@@ -237,16 +182,12 @@ def main() -> None:
     alias_index = load_alias_index()
     seen = load_seen()
 
-    if args.push:
-        chs = push_channels()
-        print(f"[watch] 推播通道: {chs or '無（未設定環境變數，僅寫入 stream）'}")
-
     print(f"[watch] 來源: {sources}，間隔 {args.interval}s，字典 {len(alias_index)} 別名")
     while True:
         if args.market_hours_only and not in_market_hours():
             print(f"[watch] {datetime.now():%H:%M} 非盤中時段，待命中...")
         else:
-            n = poll_once(sources, seen, alias_index, args.push, args.include_ticks)
+            n = poll_once(sources, seen, alias_index)
             save_seen(seen)
             print(f"[watch] {datetime.now():%H:%M:%S} 本輪新增 {n} 則")
         if args.once:

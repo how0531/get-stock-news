@@ -1,6 +1,6 @@
 ---
 name: get-stock-NEWS
-description: Fetch and aggregate Taiwan/US/Japan financial news from major Taiwan media (cnyes 鉅亨網, UDN money 經濟日報, ctee 工商時報, 中央社, 自由財經, 科技新報, ETtoday, 中時, MoneyDJ, Yahoo股市) plus official TWSE/TPEx 重大訊息. Handles real-time fetch, intraday watch/push (盤中快訊推播), 5-month historical backfill, PIT-correct Parquet storage, JSONL event stream for downstream consumers, and target-price signal extraction. Use this skill whenever the user wants to fetch, list, aggregate, watch, or push financial news (not score/rank them). Triggers: "今天的財經新聞", "幫我看 5/13 的新聞", "美股新聞", "日股新聞", "台股新聞", "鉅亨網", "經濟日報", "工商時報", "中央社", "MoneyDJ", "抓新聞", "盤中快訊", "推播", "重大訊息", "目標價變動", "Factset", "歷史新聞回抓", "新增新聞來源". For heat scoring / stock ranking / hot sectors, use the separate `stock-heat-model` skill.
+description: Fetch and aggregate Taiwan/US/Japan financial news from major Taiwan media (cnyes 鉅亨網, UDN money 經濟日報, ctee 工商時報, 中央社, 自由財經, 科技新報, ETtoday, 中時, MoneyDJ, Yahoo股市) plus official TWSE/TPEx 重大訊息. Front-end data collection only: real-time fetch, intraday watch (盤中監看), 5-month historical backfill, PIT-correct Parquet storage, JSONL event stream for downstream consumers, and target-price signal extraction. Use this skill whenever the user wants to fetch, list, aggregate, or watch financial news (not score/rank/push them). Triggers: "今天的財經新聞", "幫我看 5/13 的新聞", "美股新聞", "日股新聞", "台股新聞", "鉅亨網", "經濟日報", "工商時報", "中央社", "MoneyDJ", "抓新聞", "盤中快訊", "重大訊息", "目標價變動", "Factset", "歷史新聞回抓", "新增新聞來源". For heat scoring / stock ranking / hot sectors, use the separate `stock-heat-model` skill; push/notification delivery belongs to a downstream skill that consumes the event stream.
 ---
 
 # get-stock-NEWS — 新聞彙整
@@ -11,14 +11,16 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 
 ## Scope
 
+**本 skill 只負責前端資料搜集**：產出 PIT 儲存與事件串流即為終點，後續（熱度、推播、決策）由其他 skill 接手。
+
 | Included | Not included |
 |----------|--------------|
-| 抓取多家媒體新聞 + 官方重大訊息 | ❌ 熱度分數計算 |
-| 盤中監看、去重、快訊推播 | ❌ 個股排名 |
-| 歷史回抓（5 個月） | ❌ Tier 分級 |
-| 去重、PIT 儲存、事件串流輸出 | ❌ Veto 規則 |
+| 抓取多家媒體新聞 + 官方重大訊息 | ❌ 熱度分數計算（→ `stock-heat-model`） |
+| 盤中監看、去重、事件串流輸出 | ❌ 快訊推播（→ 下游推播 skill，讀 stream） |
+| 歷史回抓（5 個月） | ❌ 個股排名 / Tier 分級 |
+| PIT 儲存 | ❌ Veto 規則 |
 | 目標價訊號抽取 | ❌ 報酬驗證 |
-| 個股字典維護 | |
+| 個股字典維護與比對標註 | ❌ 任何決策邏輯 |
 
 ---
 
@@ -53,13 +55,13 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 
 | 來源 | 價值 | 障礙 |
 |------|------|------|
-| MOPS 即時重大訊息（`t05sr01_1`） | 秒級重訊，盤中推播的終極來源 | POST form + 反爬蟲較強，待研究 |
+| MOPS 即時重大訊息（`t05sr01_1`） | 秒級重訊，盤中監看的終極來源 | POST form + 反爬蟲較強，待研究 |
 | 證交所注意/處置股票公告 | 籌碼面 veto 訊號 | OpenAPI 有對應端點，待挑選欄位 |
 | 今周刊 / 商業周刊 / 財訊 | 週刊深度報導（領先散戶情緒） | 多為 paywall，僅能取標題 |
 | Reuters / Nikkei / Bloomberg 標題 | 美日股第一手 | paywall / 授權，僅標題層級 |
 | PTT Stock / Dcard 股板 | 散戶情緒（反向指標候選） | 非媒體，雜訊極高，另案處理 |
 
-**轉載去重提醒**：中央社的稿常被 Yahoo、自由、ETtoday 轉載，同事件多 URL。盤中推播用 URL 去重不夠，下游做熱度計算時需以「標題相似度」聚合（已列入 stock-heat-model 待辦）。
+**轉載去重提醒**：中央社的稿常被 Yahoo、自由、ETtoday 轉載，同事件多 URL。盤中監看用 URL 去重不夠，下游做熱度計算或推播時需以「標題相似度」聚合（已列入 stock-heat-model 待辦）。
 
 ---
 
@@ -72,7 +74,7 @@ Trigger when user wants to **fetch or aggregate** news:
 - "抓 5 個月歷史" / "回抓歷史"
 - 任一已註冊來源名稱（鉅亨 / 經濟日報 / 工商 / 中央社 / MoneyDJ / …）
 - "Factset 目標價" / "券商上修"
-- "盤中快訊" / "即時推播" / "盯盤通知"
+- "盤中快訊" / "盯盤監看"（注意：推播本身屬下游 skill，本 skill 只產出事件串流）
 - "重大訊息" / "公司公告"
 - "新增新聞來源" / "這個網站能不能抓"
 
@@ -96,10 +98,10 @@ Trigger when user wants to **fetch or aggregate** news:
 | `scripts/fetch_by_date.py` | 指定日期整合（cnyes + UDN） |
 | `scripts/main.py` | 全來源一次抓最新 |
 
-### 盤中監看與推播
+### 盤中監看
 | Script | Purpose |
 |--------|---------|
-| `scripts/watch_intraday.py` | 輪詢 + 去重 + 個股比對 + JSONL 事件串流 + Telegram/Discord 推播 |
+| `scripts/watch_intraday.py` | 輪詢 + 去重 + 個股比對 + JSONL 事件串流（推播由下游 skill 讀 stream 處理） |
 
 ### 歷史回抓
 | Script | Speed | Notes |
@@ -149,7 +151,7 @@ PYTHONUTF8=1 python scripts/rss_sources.py cna,moneydj
 # 官方重大訊息
 PYTHONUTF8=1 python scripts/twse_announce.py
 
-# 盤中監看（見下方「盤中快訊推播」一節）
+# 盤中監看（見下方「盤中監看與事件串流」一節）
 PYTHONUTF8=1 python scripts/watch_intraday.py --once
 
 # 指定日期
@@ -167,34 +169,23 @@ df = query("SELECT * FROM 'data/processed/**/*.parquet' WHERE actionable_ts < '2
 
 ---
 
-## 盤中快訊推播（watch_intraday）
+## 盤中監看與事件串流（watch_intraday）
 
-輪詢低延遲來源 → 去重 → 個股字典比對 → 寫入事件串流 → （可選）推播。
+輪詢低延遲來源 → 去重 → 個股字典比對 → 寫入事件串流。**到此為止**——推播本身屬下游 skill，讀 `data/stream/*.jsonl` 自行決定推什麼、推到哪。
 
 ```bash
 # 測試：單次輪詢
 PYTHONUTF8=1 python scripts/watch_intraday.py --once
 
-# 正式：每 60 秒輪詢，僅台股盤中時段（08:30-13:45），啟用推播
-PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only --push
+# 正式：每 60 秒輪詢，僅台股盤中時段（08:30-13:45）
+PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only
 
 # 自選來源（預設 cnyes,cna,moneydj,announce — 延遲最低的組合）
 PYTHONUTF8=1 python scripts/watch_intraday.py --sources cnyes,announce
 ```
 
-### 推播通道（設環境變數即啟用，可多通道並行）
-
-| 通道 | 環境變數 |
-|------|---------|
-| Telegram Bot | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` |
-| Discord webhook | `DISCORD_WEBHOOK_URL` |
-
-⚠️ **LINE Notify 已於 2025-03-31 終止服務**，勿再使用；要走 LINE 需改 LINE Messaging API（規劃中）。
-
-### 推播原則
-- 預設只推「有比對到個股」或 `signal_*` tag 的事件
-- `noise_intraday_tick`（盤中速報純價格 tick）預設不推，`--include-ticks` 開啟
-- 去重狀態存 `data/state/seen_keys.json`（上限 8000 key，重啟不重複推播）
+- 去重狀態存 `data/state/seen_keys.json`（上限 8000 key，重啟不重複寫入）
+- 給下游推播 skill 的建議（僅供參考，決策不在本 skill）：`noise_intraday_tick` 純價格 tick 通常不值得推；LINE Notify 已於 2025-03-31 終止服務，要走 LINE 需用 LINE Messaging API
 
 ### 輪詢頻率與禮貌
 - cnyes API：60s 輪詢已遠快於其發稿頻率，勿低於 30s
