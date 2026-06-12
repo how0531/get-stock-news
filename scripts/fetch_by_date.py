@@ -7,8 +7,12 @@ from datetime import datetime, timedelta
 import requests
 from dateutil import parser as dtparser  # type: ignore
 
-from scrapers.cnyes import CATEGORIES as CNYES_CATS
-from scrapers.udn import FEEDS as UDN_FEEDS
+try:
+    from .cnyes import CATEGORIES as CNYES_CATS
+    from .udn import FEEDS as UDN_FEEDS
+except ImportError:  # 直接以 python scripts/fetch_by_date.py 執行
+    from cnyes import CATEGORIES as CNYES_CATS
+    from udn import FEEDS as UDN_FEEDS
 import feedparser
 
 

@@ -11,17 +11,24 @@
 
 ## 資料來源
 
-| 來源 | 方式 | 歷史回溯 |
-|------|------|----------|
-| 鉅亨網 cnyes.com | 公開 JSON API | ✅ 完整 |
-| 經濟日報 money.udn.com | sitemap 分週切片 | ✅ ~100% |
-| 工商時報 ctee.com.tw | HTML / WP REST API | ⚠️ TBD |
+| 來源 | 方式 | 歷史回溯 | 狀態 |
+|------|------|----------|------|
+| 鉅亨網 cnyes.com | 公開 JSON API | ✅ 完整 | ✅ 已驗證 |
+| 經濟日報 money.udn.com | sitemap 分週切片 | ✅ ~100% | ✅ 已驗證 |
+| 工商時報 ctee.com.tw | HTML / WP REST API | ⚠️ TBD | ✅ 已驗證 |
+| 中央社 / 自由財經 / 科技新報 / ETtoday / 中時 / MoneyDJ / Yahoo股市 | RSS（`rss_sources.py` 註冊表） | ❌ | 🆕 待本機驗證 |
+| TWSE / TPEx 重大訊息 | OpenAPI（官方第一手） | ❌ | 🆕 待本機驗證 |
+
+完整來源清單（含延遲、轉載去重提醒、規劃中來源）見 [skills/get-stock-NEWS/SKILL.md](skills/get-stock-NEWS/SKILL.md)。
 
 ## 主要 Scripts
 
 ```
 scripts/
 ├── cnyes.py / udn.py / ctee.py        # 即時抓取
+├── rss_sources.py                      # RSS 通用爬蟲（多家媒體註冊表）
+├── twse_announce.py                    # TWSE/TPEx 官方重大訊息
+├── watch_intraday.py                   # 盤中監看 + 事件串流 + 推播
 ├── backfill_cnyes.py / backfill_udn.py # 歷史回抓
 ├── storage.py                          # PIT Parquet 儲存層
 ├── extract_target_price.py             # Factset 目標價
@@ -40,6 +47,9 @@ PYTHONUTF8=1 python scripts/main.py
 # 指定日期
 PYTHONUTF8=1 python scripts/fetch_by_date.py 2026-05-13
 
+# 盤中監看 + 推播（Telegram/Discord，設環境變數即啟用）
+PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only --push
+
 # 5 個月歷史背景抓取
 nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
 ```
@@ -52,7 +62,10 @@ nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
 
 ```
 抓取層 → PIT 儲存層 → 後處理 → 量化層
-cnyes/UDN/ctee  →  Parquet  →  個股辨識  →  熱度 + Tier
+多媒體/官方公告  →  Parquet  →  個股辨識  →  熱度 + Tier
+
+盤中即時通道（低延遲，不走 Parquet）：
+輪詢 → 去重 → 個股比對 → data/stream/*.jsonl → 資訊大腦 / 推播
 ```
 
 ## 重要原則（三方專家共識）
