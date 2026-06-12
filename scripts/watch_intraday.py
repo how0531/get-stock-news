@@ -16,6 +16,9 @@ import json
 import time as time_mod
 from datetime import datetime, time
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+TAIPEI = ZoneInfo("Asia/Taipei")
 
 try:
     from .cnyes import fetch as fetch_cnyes
@@ -125,7 +128,7 @@ def poll_once(
 ) -> int:
     seen_set = set(seen)
     new_count = 0
-    now = datetime.now()
+    now = datetime.now(TAIPEI)
     stream_file = STREAM_DIR / f"{now:%Y-%m-%d}.jsonl"
     STREAM_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -163,7 +166,8 @@ def poll_once(
 
 
 def in_market_hours(now: datetime | None = None) -> bool:
-    now = now or datetime.now()
+    """以台北時區判斷，主機系統時區是 UTC 也不會誤判。"""
+    now = now or datetime.now(TAIPEI)
     return now.weekday() < 5 and MARKET_OPEN <= now.time() <= MARKET_CLOSE
 
 
@@ -185,11 +189,11 @@ def main() -> None:
     print(f"[watch] 來源: {sources}，間隔 {args.interval}s，字典 {len(alias_index)} 別名")
     while True:
         if args.market_hours_only and not in_market_hours():
-            print(f"[watch] {datetime.now():%H:%M} 非盤中時段，待命中...")
+            print(f"[watch] {datetime.now(TAIPEI):%H:%M} 非盤中時段，待命中...")
         else:
             n = poll_once(sources, seen, alias_index)
             save_seen(seen)
-            print(f"[watch] {datetime.now():%H:%M:%S} 本輪新增 {n} 則")
+            print(f"[watch] {datetime.now(TAIPEI):%H:%M:%S} 本輪新增 {n} 則")
         if args.once:
             break
         time_mod.sleep(args.interval)
