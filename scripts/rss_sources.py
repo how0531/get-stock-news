@@ -29,6 +29,8 @@ SOURCES: dict[str, dict] = {
     },
     "technews": {
         "label": "科技新報",
+        # 唯一非財經分類的來源（科技媒體全站 feed），會混入科普文；
+        # 本機驗證時優先試 /category/{財經 slug}/feed/ 分類 feed，可用就替換
         "feeds": {
             "全站": "https://technews.tw/feed/",
         },

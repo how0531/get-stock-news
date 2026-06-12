@@ -39,17 +39,19 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 > 以下由 `scripts/rss_sources.py`（RSS 通用爬蟲）與 `scripts/twse_announce.py`（官方公告）支援。
 > feed URL 依公開資訊撰寫，**首次使用請各跑一次確認**（`python scripts/rss_sources.py cna` 等），失效就改 `SOURCES` 註冊表。
 
-| source_id | 媒體 | Method | 延遲 | 特性 |
-|-----------|------|--------|------|------|
-| `cna` | 中央社 | feedburner RSS | ~分鐘級 | 權威通訊社，政策/總經第一手 |
-| `ltn` | 自由財經 | RSS | ~5-15 分 | 綜合財經 |
-| `technews` | 科技新報 | WordPress RSS | ~5-15 分 | 科技供應鏈深度，補半導體盲區 |
-| `ettoday` | ETtoday財經 | feedburner RSS | ~5-15 分 | 量大，雜訊比偏高 |
-| `chinatimes` | 中時新聞網 | RSS | ~5-15 分 | 與工商時報同集團，可互補 |
-| `moneydj` | MoneyDJ理財網 | RSS center | ~分鐘級 | 法人圈常用，個股新聞密度高 |
-| `yahoo_stock` | Yahoo奇摩股市 | RSS | ~5-15 分 | 聚合多家，**去重後**才能用（轉載源） |
-| `announce`(twse) | 證交所重大訊息 | TWSE OpenAPI `t187ap04_L` | 快照，非逐秒 | **官方第一手**，上市公司當日重訊 |
-| `announce`(tpex) | 櫃買重大訊息 | TPEx OpenAPI `mopsfin_t187ap04_O` | 快照，非逐秒 | 上櫃公司當日重訊 |
+| source_id | 媒體 | Method | 內容範圍 | 延遲 | 特性 |
+|-----------|------|--------|---------|------|------|
+| `cna` | 中央社 | feedburner RSS | 財經分類 | ~分鐘級 | 權威通訊社，政策/總經第一手 |
+| `ltn` | 自由財經 | RSS | 財經頻道 | ~5-15 分 | 綜合財經 |
+| `technews` | 科技新報 | WordPress RSS | ⚠️ 全站（科技媒體） | ~5-15 分 | 半導體/AI 供應鏈深度，但會混入非財經科普文；本機驗證時試改 `/category/{財經 slug}/feed/` 分類 feed |
+| `ettoday` | ETtoday財經 | feedburner RSS | 財經雲分類 | ~5-15 分 | 量大，雜訊比偏高 |
+| `chinatimes` | 中時新聞網 | RSS | 財經即時分類 | ~5-15 分 | 與工商時報同集團，可互補 |
+| `moneydj` | MoneyDJ理財網 | RSS center | 整站即財經 | ~分鐘級 | 法人圈常用，個股新聞密度高 |
+| `yahoo_stock` | Yahoo奇摩股市 | RSS | 股市頻道 | ~5-15 分 | 聚合多家，**去重後**才能用（轉載源） |
+| `announce`(twse) | 證交所重大訊息 | TWSE OpenAPI `t187ap04_L` | 官方公告 | 快照，非逐秒 | **官方第一手**，上市公司當日重訊 |
+| `announce`(tpex) | 櫃買重大訊息 | TPEx OpenAPI `mopsfin_t187ap04_O` | 官方公告 | 快照，非逐秒 | 上櫃公司當日重訊 |
+
+**內容範圍原則**：feed 一律選「財經/股市分類」而非全站（目前唯一例外是科技新報，全站 feed、待改分類 feed）。但財經分類仍含總經、房產、理財教學等非個股內容——這是預期行為：事件串流每筆都帶 `tickers` 比對結果，**過濾是下游的決策**（`tickers` 為空可直接略過或降權），本 skill 不替下游刪內容。
 
 ### 規劃中 / 評估中
 
