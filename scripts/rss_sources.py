@@ -9,7 +9,11 @@ import time
 from typing import Iterable
 
 import feedparser
-from dateutil import parser as dtparser  # type: ignore
+
+try:
+    from .common import request_get, to_taipei_iso
+except ImportError:
+    from common import request_get, to_taipei_iso
 
 UA = "Mozilla/5.0"
 
@@ -64,13 +68,7 @@ SOURCES: dict[str, dict] = {
 
 
 def _norm_time(entry) -> str:
-    raw = entry.get("published") or entry.get("updated") or ""
-    if not raw:
-        return ""
-    try:
-        return dtparser.parse(raw).isoformat()
-    except Exception:
-        return raw
+    return to_taipei_iso(entry.get("published") or entry.get("updated"))
 
 
 def fetch_source(source_id: str, limit_per_feed: int = 15) -> list[dict]:
@@ -79,7 +77,8 @@ def fetch_source(source_id: str, limit_per_feed: int = 15) -> list[dict]:
     out: list[dict] = []
     for name, url in conf["feeds"].items():
         try:
-            feed = feedparser.parse(url, agent=UA)
+            resp = request_get(url, headers={"User-Agent": UA})
+            feed = feedparser.parse(resp.content)
             if feed.bozo and not feed.entries:
                 raise RuntimeError(f"feed 解析失敗: {feed.bozo_exception}")
             for entry in feed.entries[:limit_per_feed]:

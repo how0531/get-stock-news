@@ -32,7 +32,9 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 |--------|--------|------|-----------|-------|
 | 鉅亨網 cnyes.com | 公開 JSON API（`scripts/cnyes.py`） | ⚡ 最低，~1-2 分；盤中速報近即時 | ✅ 完整（API 支援 date range） | 必帶 `Referer: https://news.cnyes.com/` |
 | 經濟日報 UDN money | RSS 即時 + sitemap 分週切片（`scripts/udn.py`） | RSS ~5-15 分 | ✅ ~100%（過去 12 月） | sitemap: `/sitemap/staticmap/1001T{YYYYMM}W{N}` |
-| 工商時報 ctee | 靜態 HTML / WP REST API（`scripts/ctee.py`） | 列表頁更新頻率 | ⚠️ TBD | 無公開 RSS、列表無時間戳 |
+| 工商時報 ctee | WP REST API 優先（有準確時間戳），HTML fallback（`scripts/ctee.py`） | API ~分鐘級 | ⚠️ TBD | 無公開 RSS；WP API 端點待本機驗證 |
+
+> 共通行為：所有來源 `published_at` 一律正規化為 **Asia/Taipei ISO** 格式；HTTP 失敗自動 retry（指數退避 2 次）。
 
 ### 已實作，端點待本機驗證
 
@@ -63,7 +65,7 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 | Reuters / Nikkei / Bloomberg 標題 | 美日股第一手 | paywall / 授權，僅標題層級 |
 | PTT Stock / Dcard 股板 | 散戶情緒（反向指標候選） | 非媒體，雜訊極高，另案處理 |
 
-**轉載去重提醒**：中央社的稿常被 Yahoo、自由、ETtoday 轉載，同事件多 URL。盤中監看用 URL 去重不夠，下游做熱度計算或推播時需以「標題相似度」聚合（已列入 stock-heat-model 待辦）。
+**轉載去重提醒**：中央社的稿常被 Yahoo、自由、ETtoday 轉載，同事件多 URL。搜集端已做**機械去重**（標題正規化後完全相同者視為同文，`common.norm_title`，watch_intraday / main / process_day 皆套用）；「標題相似但不相同」的語意聚合屬下游（已列入 stock-heat-model 待辦）。
 
 ---
 
@@ -105,6 +107,16 @@ Trigger when user wants to **fetch or aggregate** news:
 |--------|---------|
 | `scripts/watch_intraday.py` | 輪詢 + 去重 + 個股比對 + JSONL 事件串流（推播由下游 skill 讀 stream 處理） |
 
+### 日終 ETL
+| Script | Purpose |
+|--------|---------|
+| `scripts/process_day.py` | 當日 raw + stream → processed Parquet（PIT 三時間戳、同文去重） |
+
+### 共用層
+| Script | Purpose |
+|--------|---------|
+| `scripts/common.py` | Asia/Taipei 時間正規化、標題正規化去重 key、HTTP retry |
+
 ### 歷史回抓
 | Script | Speed | Notes |
 |--------|-------|-------|
@@ -125,7 +137,7 @@ Trigger when user wants to **fetch or aggregate** news:
 ### 字典維護
 | Script | Purpose |
 |--------|---------|
-| `scripts/build_stock_dict.py` | 重生 TW/US/JP 個股字典 |
+| `scripts/build_stock_dict.py` | 重生 TW/US/JP 個股字典；`--full-tw` 改用 TWSE/TPEx OpenAPI 全市場清單（~1,800 檔，需網路），人工策展的 sector/綽號疊加其上 |
 
 ---
 
@@ -163,6 +175,13 @@ PYTHONUTF8=1 python scripts/fetch_by_date.py 2026-05-13
 nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
 nohup python scripts/backfill_udn.py > backfill_udn.log 2>&1 &
 
+# 日終 ETL：raw + stream -> processed Parquet（建議排 cron 每日 14:30）
+PYTHONUTF8=1 python scripts/process_day.py            # 今天
+PYTHONUTF8=1 python scripts/process_day.py 2026-06-12 # 指定日期
+
+# 全市場台股字典（首次或每季重跑一次）
+PYTHONUTF8=1 python scripts/build_stock_dict.py --full-tw
+
 # 程式化載入
 from scripts.storage import load_processed, query
 df = load_processed("2026-01-01", "2026-05-15")
@@ -186,13 +205,35 @@ PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only
 PYTHONUTF8=1 python scripts/watch_intraday.py --sources cnyes,announce
 ```
 
-- 去重狀態存 `data/state/seen_keys.json`（上限 8000 key，重啟不重複寫入）
+- 去重兩把 key：URL+標題、**正規化標題**（跨來源轉載 URL 不同也擋得住）；狀態存 `data/state/seen_keys.json`（上限 8000 key，重啟不重複寫入）
+- 時間判斷一律 Asia/Taipei（主機系統時區是 UTC 也不會誤判盤中時段）
 - 給下游推播 skill 的建議（僅供參考，決策不在本 skill）：`noise_intraday_tick` 純價格 tick 通常不值得推；LINE Notify 已於 2025-03-31 終止服務，要走 LINE 需用 LINE Messaging API
 
 ### 輪詢頻率與禮貌
 - cnyes API：60s 輪詢已遠快於其發稿頻率，勿低於 30s
 - RSS 來源：站方快取多為分鐘級，60-120s 即可
 - OpenAPI 重大訊息：快照型，120s 以上即可
+
+### 長時運行（整天掛著）
+加 `--log-file` 留紀錄，並用 cron 或 systemd 確保開機自動跑：
+
+```bash
+# cron（crontab -e）
+@reboot cd /path/to/get-stock-news && PYTHONUTF8=1 python scripts/watch_intraday.py \
+  --market-hours-only --log-file data/state/watch.log >> data/state/watch.out 2>&1
+30 14 * * 1-5 cd /path/to/get-stock-news && PYTHONUTF8=1 python scripts/process_day.py
+```
+
+```ini
+# systemd（/etc/systemd/system/stock-watch.service）
+[Service]
+WorkingDirectory=/path/to/get-stock-news
+Environment=PYTHONUTF8=1
+ExecStart=/usr/bin/python3 scripts/watch_intraday.py --market-hours-only --log-file data/state/watch.log
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+```
 
 ---
 
@@ -222,8 +263,10 @@ data/stream/YYYY-MM-DD.jsonl   ← watch_intraday 每事件 append 一行
 
 - `tickers` 已用 L1 regex + L2 字典比對完成，下游不必重做
 - `tags` 取值見「已知雜訊與處理」（`noise_intraday_tick` / `signal_target_price` / `signal_revenue` / `signal_announcement`）
-- **盤中即時用 `ingestion_ts`，回測一律改用 processed 層的 `actionable_ts`**（stream 是低延遲通道，不保證 PIT 規則；日終由 storage 層補正）
+- `publish_ts` / `ingestion_ts` 一律為 **Asia/Taipei ISO**（含 `+08:00` 時差標記）
+- **盤中即時用 `ingestion_ts`，回測一律改用 processed 層的 `actionable_ts`**（stream 是低延遲通道，不保證 PIT 規則；日終由 `process_day.py` 補正）
 - 消費端 tail 模式：記住 (檔名, byte offset)，跨日切檔重置 offset
+- 回測資料由日終 ETL 產生：`python scripts/process_day.py` 將當日 raw + stream 去重後寫入 `data/processed/date=*/data.parquet`
 
 ---
 
@@ -236,9 +279,10 @@ data/
 │   ├── udn/YYYY-MM-DD.json
 │   ├── ctee/YYYY-MM-DD.json
 │   └── {source_id}/YYYY-MM-DD.json          ← 新來源同規則
-├── processed/date=YYYY-MM-DD/data.parquet   ← Hive-style，DuckDB partition pruning
+├── processed/date=YYYY-MM-DD/data.parquet   ← Hive-style，process_day.py 產生
 ├── stream/YYYY-MM-DD.jsonl                  ← 盤中事件串流（下游介接點）
 ├── state/seen_keys.json                     ← 盤中去重狀態
+├── calendar/tw_holidays.json                ← 台股休市日（每年更新，actionable_ts 依此跳過）
 ├── target_price/YYYY-MM-DD.json
 └── stocks/
     ├── tw_stocks.json  (162 檔 + 別名)
@@ -261,8 +305,10 @@ actionable_ts  ← 最早可決策時間（依台股交易日推算）
 ### actionable_ts 規則
 - 09:00 前發布 → 當日 09:00
 - 09:00-13:30 → 當日 13:30
-- 13:30 後 → 次一工作日 09:00
-- 週末 → 次週一 09:00（國定假日尚未處理）
+- 13:30 後 → 次一交易日 09:00
+- 週末或國定假日 → 次一交易日 09:00
+
+休市日來自 `data/calendar/tw_holidays.json`（含春節封關等；**每年底依證交所公告更新次年清單**，目前 2026 清單為推算值、春節範圍待對照公告）。
 
 回測時務必用 `actionable_ts` 過濾，**禁止用 `publish_ts`**（會 look-ahead）。
 
@@ -316,6 +362,10 @@ JP_TICKER   = r"\b\d{4}\.T\b"
 
 ### L2 字典
 `data/stocks/*.json`，含中文標準名、簡稱、英文、綽號、`{ticker}-US` 後綴。
+
+預設為人工策展子集（台股 162 檔）。**盤中比對覆蓋率不足時**，本機跑
+`python scripts/build_stock_dict.py --full-tw` 改用 TWSE/TPEx OpenAPI
+全市場清單（上市+上櫃約 1,800 檔），策展的 sector/綽號自動疊加、黑名單照舊。
 
 ### 黑名單（已從字典移除）
 `AI / EV / 5G / 6G / IC / IT / OS / CEO / TV / VR / AR / PC / GPU / CPU / HBM / SSD` + 所有單字母 ticker（V/C/F/T/X/U）

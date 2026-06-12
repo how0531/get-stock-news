@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
 from typing import Iterable
 
-import requests
+try:
+    from .common import request_get, to_taipei_iso
+except ImportError:
+    from common import request_get, to_taipei_iso
 
 BASE = "https://api.cnyes.com/media/api/v1/newslist/category/{}"
 HEADERS = {
@@ -24,13 +26,11 @@ CATEGORIES = {
 
 
 def _get(category: str, limit: int = 30, page: int = 1) -> list[dict]:
-    resp = requests.get(
+    resp = request_get(
         BASE.format(category),
         params={"limit": limit, "page": page},
         headers=HEADERS,
-        timeout=10,
     )
-    resp.raise_for_status()
     return resp.json()["items"]["data"]
 
 
@@ -48,9 +48,7 @@ def fetch(categories: Iterable[str] | None = None, limit: int = 20) -> list[dict
                         "title": item.get("title"),
                         "summary": item.get("summary"),
                         "url": f"https://news.cnyes.com/news/id/{item.get('newsId')}",
-                        "published_at": datetime.fromtimestamp(
-                            item.get("publishAt", 0)
-                        ).isoformat(),
+                        "published_at": to_taipei_iso(item.get("publishAt")),
                         "keywords": item.get("keyword", ""),
                     }
                 )

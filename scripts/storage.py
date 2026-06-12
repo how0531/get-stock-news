@@ -51,18 +51,39 @@ for p in (RAW, PROCESSED, FACTORS):
 MARKET_OPEN = time(9, 0)
 MARKET_CLOSE = time(13, 30)
 
+HOLIDAY_FILE = DATA / "calendar" / "tw_holidays.json"
+_HOLIDAYS: set[str] | None = None
 
-def _next_weekday(d: datetime) -> datetime:
-    """Advance d.date() to the next weekday (Mon-Fri). Time component preserved."""
+
+def _tw_holidays() -> set[str]:
+    """Load TW market closure dates (YYYY-MM-DD) once; empty set if file missing."""
+    global _HOLIDAYS
+    if _HOLIDAYS is None:
+        _HOLIDAYS = set()
+        if HOLIDAY_FILE.exists():
+            raw = json.loads(HOLIDAY_FILE.read_text(encoding="utf-8"))
+            for key, dates in raw.items():
+                if not key.startswith("_") and isinstance(dates, list):
+                    _HOLIDAYS.update(dates)
+    return _HOLIDAYS
+
+
+def _is_closed(d: datetime) -> bool:
+    """True on weekends and TW market holidays (data/calendar/tw_holidays.json)."""
+    return d.weekday() >= 5 or d.strftime("%Y-%m-%d") in _tw_holidays()
+
+
+def _next_trading_day(d: datetime) -> datetime:
+    """Advance d.date() to the next trading day. Time component preserved."""
     nd = d + timedelta(days=1)
-    while nd.weekday() >= 5:  # Sat=5, Sun=6
+    while _is_closed(nd):
         nd += timedelta(days=1)
     return nd
 
 
-def _to_weekday(d: datetime) -> datetime:
-    """If d falls on a weekend, push forward to next Monday at 09:00."""
-    while d.weekday() >= 5:
+def _to_trading_day(d: datetime) -> datetime:
+    """If d falls on a closed day, push forward to next trading day at 09:00."""
+    while _is_closed(d):
         d = (d + timedelta(days=1)).replace(
             hour=MARKET_OPEN.hour, minute=MARKET_OPEN.minute, second=0, microsecond=0
         )
@@ -71,13 +92,15 @@ def _to_weekday(d: datetime) -> datetime:
 
 def compute_actionable_ts(publish_ts: datetime) -> datetime:
     """
-    Map publish time -> earliest actionable time (TW market hours, weekend-aware).
+    Map publish time -> earliest actionable time (TW market hours, closed-day-aware).
 
     Rules:
-      - published before 09:00 on a weekday -> same day 09:00 (open)
-      - published 09:00 <= t < 13:30        -> same day 13:30 (close)
-      - published >= 13:30                  -> next trading day 09:00
-      - published on weekend                -> next Monday 09:00
+      - published before 09:00 on a trading day -> same day 09:00 (open)
+      - published 09:00 <= t < 13:30            -> same day 13:30 (close)
+      - published >= 13:30                      -> next trading day 09:00
+      - published on weekend / market holiday   -> next trading day 09:00
+
+    Holidays come from data/calendar/tw_holidays.json (maintained yearly).
     """
     if publish_ts is None or pd.isna(publish_ts):
         return publish_ts  # type: ignore[return-value]
@@ -85,12 +108,12 @@ def compute_actionable_ts(publish_ts: datetime) -> datetime:
     if isinstance(publish_ts, pd.Timestamp):
         publish_ts = publish_ts.to_pydatetime()
 
-    # Weekend publish -> next Monday open.
-    if publish_ts.weekday() >= 5:
+    # Closed-day publish (weekend or holiday) -> next trading day's open.
+    if _is_closed(publish_ts):
         candidate = publish_ts.replace(
             hour=MARKET_OPEN.hour, minute=MARKET_OPEN.minute, second=0, microsecond=0
         )
-        return _to_weekday(candidate)
+        return _to_trading_day(candidate)
 
     t = publish_ts.time()
     base = publish_ts.replace(second=0, microsecond=0)
@@ -101,7 +124,7 @@ def compute_actionable_ts(publish_ts: datetime) -> datetime:
         return base.replace(hour=MARKET_CLOSE.hour, minute=MARKET_CLOSE.minute)
 
     # After close -> next trading day's open
-    nxt = _next_weekday(publish_ts).replace(
+    nxt = _next_trading_day(publish_ts).replace(
         hour=MARKET_OPEN.hour, minute=MARKET_OPEN.minute, second=0, microsecond=0
     )
     return nxt

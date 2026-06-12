@@ -9,7 +9,10 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-import requests
+try:
+    from .common import TAIPEI, request_get
+except ImportError:
+    from common import TAIPEI, request_get
 
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
 
@@ -32,7 +35,9 @@ def _roc_to_iso(date_str: str, time_str: str = "") -> str:
         else:
             return ""
         t = re.sub(r"\D", "", time_str or "").ljust(6, "0")[:6]
-        return datetime(y, m, d, int(t[:2]), int(t[2:4]), int(t[4:6])).isoformat()
+        return datetime(
+            y, m, d, int(t[:2]), int(t[2:4]), int(t[4:6]), tzinfo=TAIPEI
+        ).isoformat()
     except ValueError:
         return ""
 
@@ -52,8 +57,7 @@ def fetch(markets: list[str] | None = None) -> list[dict]:
     for mkt in chosen:
         label, url = ENDPOINTS[mkt]
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=15)
-            resp.raise_for_status()
+            resp = request_get(url, headers=HEADERS, timeout=15)
             for row in resp.json():
                 code = _field(row, "公司代號")
                 name = _field(row, "公司名稱")

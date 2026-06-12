@@ -16,18 +16,26 @@ import json
 import time as time_mod
 from datetime import datetime, time
 from pathlib import Path
-from zoneinfo import ZoneInfo
-
-TAIPEI = ZoneInfo("Asia/Taipei")
 
 try:
+    from .common import TAIPEI, norm_title
     from .cnyes import fetch as fetch_cnyes
     from .rss_sources import SOURCES as RSS_SOURCES, fetch_source as fetch_rss
     from .twse_announce import fetch as fetch_announce
 except ImportError:  # 直接以 python scripts/watch_intraday.py 執行
+    from common import TAIPEI, norm_title
     from cnyes import fetch as fetch_cnyes
     from rss_sources import SOURCES as RSS_SOURCES, fetch_source as fetch_rss
     from twse_announce import fetch as fetch_announce
+
+LOG_FILE: Path | None = None
+
+
+def log(msg: str) -> None:
+    print(msg)
+    if LOG_FILE is not None:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now(TAIPEI):%Y-%m-%d %H:%M:%S} {msg}\n")
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE_FILE = ROOT / "data" / "state" / "seen_keys.json"
@@ -65,9 +73,14 @@ def save_seen(seen: list[str]) -> None:
     STATE_FILE.write_text(json.dumps(seen[-SEEN_CAP:]), encoding="utf-8")
 
 
-def item_key(item: dict) -> str:
-    # 重大訊息共用查詢頁 URL，需加標題才唯一
-    return f"{item.get('url', '')}|{item.get('title', '')}"
+def item_keys(item: dict) -> list[str]:
+    """兩把去重 key：URL+標題（重大訊息共用查詢頁 URL，需加標題才唯一）、
+    正規化標題（跨來源轉載 URL 不同、內文相同）。"""
+    keys = [f"url:{item.get('url', '')}|{item.get('title', '')}"]
+    tkey = norm_title(item.get("title") or "")
+    if tkey:
+        keys.append(f"title:{tkey}")
+    return keys
 
 
 # --------------------------------------------------------------------------- #
@@ -133,11 +146,11 @@ def poll_once(
     STREAM_DIR.mkdir(parents=True, exist_ok=True)
 
     for item in poll_sources(sources):
-        key = item_key(item)
-        if not item.get("title") or key in seen_set:
+        keys = item_keys(item)
+        if not item.get("title") or any(k in seen_set for k in keys):
             continue
-        seen_set.add(key)
-        seen.append(key)
+        seen_set.update(keys)
+        seen.extend(keys)
         new_count += 1
 
         tags = classify(item["title"])
@@ -160,7 +173,7 @@ def poll_once(
         with open(stream_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(event, ensure_ascii=False) + "\n")
 
-        print(f"  + [{item['source']}] {item['title']}  tickers={tickers} tags={tags}")
+        log(f"  + [{item['source']}] {item['title']}  tickers={tickers} tags={tags}")
 
     return new_count
 
@@ -180,20 +193,27 @@ def main() -> None:
     ap.add_argument("--once", action="store_true", help="只輪詢一次後結束（測試用）")
     ap.add_argument("--market-hours-only", action="store_true",
                     help="僅在台股盤中時段（08:30-13:45）輪詢")
+    ap.add_argument("--log-file", default=None,
+                    help="同步寫入 log 檔（長時運行建議開啟，例如 data/state/watch.log）")
     args = ap.parse_args()
+
+    global LOG_FILE
+    if args.log_file:
+        LOG_FILE = Path(args.log_file)
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
     sources = [s.strip() for s in args.sources.split(",") if s.strip()]
     alias_index = load_alias_index()
     seen = load_seen()
 
-    print(f"[watch] 來源: {sources}，間隔 {args.interval}s，字典 {len(alias_index)} 別名")
+    log(f"[watch] 來源: {sources}，間隔 {args.interval}s，字典 {len(alias_index)} 別名")
     while True:
         if args.market_hours_only and not in_market_hours():
-            print(f"[watch] {datetime.now(TAIPEI):%H:%M} 非盤中時段，待命中...")
+            log(f"[watch] {datetime.now(TAIPEI):%H:%M} 非盤中時段，待命中...")
         else:
             n = poll_once(sources, seen, alias_index)
             save_seen(seen)
-            print(f"[watch] {datetime.now(TAIPEI):%H:%M:%S} 本輪新增 {n} 則")
+            log(f"[watch] {datetime.now(TAIPEI):%H:%M:%S} 本輪新增 {n} 則")
         if args.once:
             break
         time_mod.sleep(args.interval)

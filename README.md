@@ -29,10 +29,12 @@ scripts/
 ├── rss_sources.py                      # RSS 通用爬蟲（多家媒體註冊表）
 ├── twse_announce.py                    # TWSE/TPEx 官方重大訊息
 ├── watch_intraday.py                   # 盤中監看 + 事件串流（推播由下游 skill 負責）
+├── process_day.py                      # 日終 ETL：raw + stream -> processed Parquet
+├── common.py                           # 共用：台北時區正規化 / 標題去重 / HTTP retry
 ├── backfill_cnyes.py / backfill_udn.py # 歷史回抓
-├── storage.py                          # PIT Parquet 儲存層
+├── storage.py                          # PIT Parquet 儲存層（假日感知 actionable_ts）
 ├── extract_target_price.py             # Factset 目標價
-├── build_stock_dict.py                 # 個股字典維護
+├── build_stock_dict.py                 # 個股字典維護（--full-tw 全市場 ~1,800 檔）
 └── quick_heat.py                       # 簡化版熱度（sanity check）
 ```
 
@@ -48,7 +50,10 @@ PYTHONUTF8=1 python scripts/main.py
 PYTHONUTF8=1 python scripts/fetch_by_date.py 2026-05-13
 
 # 盤中監看（事件串流寫入 data/stream/，供下游推播/大腦 skill 讀取）
-PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only
+PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only --log-file data/state/watch.log
+
+# 日終 ETL：raw + stream -> processed Parquet
+PYTHONUTF8=1 python scripts/process_day.py
 
 # 5 個月歷史背景抓取
 nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
@@ -62,7 +67,7 @@ nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
 
 ```
 抓取層 → PIT 儲存層 → 後處理 → 量化層
-多媒體/官方公告  →  Parquet  →  個股辨識  →  熱度 + Tier
+多媒體/官方公告 → process_day → Parquet（假日感知 PIT）→ 個股辨識 → 熱度 + Tier
 
 盤中即時通道（低延遲，不走 Parquet）：
 輪詢 → 去重 → 個股比對 → data/stream/*.jsonl → 下游 skill（資訊大腦 / 推播）

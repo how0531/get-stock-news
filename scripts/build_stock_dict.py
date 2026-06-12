@@ -36,12 +36,24 @@ Design notes
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+try:
+    from .common import request_get
+except ImportError:
+    from common import request_get
+
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "stocks"
+
+# 高歧義縮寫與單字元，一律不得作為 alias（同 SKILL.md 黑名單）
+ALIAS_BLACKLIST = {
+    "AI", "EV", "5G", "6G", "IC", "IT", "OS", "CEO", "TV", "VR", "AR",
+    "PC", "GPU", "CPU", "HBM", "SSD",
+}
 
 
 def _entry(
@@ -509,11 +521,90 @@ def _build(rows: List[tuple], market: str) -> Dict[str, dict]:
     return out
 
 
-def main() -> None:
+# ---------------------------------------------------------------------------
+# Full TW universe via TWSE / TPEx OpenAPI（補足非權值股的盤中比對覆蓋率）
+# ---------------------------------------------------------------------------
+
+TW_UNIVERSE_APIS = [
+    # (OpenAPI 端點, ticker 後綴)
+    ("https://openapi.twse.com.tw/v1/opendata/t187ap03_L", ".TW"),    # 上市公司基本資料
+    ("https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O", ".TWO"),  # 上櫃公司基本資料
+]
+
+_UNIVERSE_HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+
+
+def _row_field(row: dict, *keywords: str) -> str:
+    """OpenAPI 中文欄位名偶有空白/版本差異，用關鍵字模糊取值。"""
+    for k, v in row.items():
+        if all(kw in k for kw in keywords):
+            return str(v).strip()
+    return ""
+
+
+def _clean_aliases(aliases: List[str]) -> List[str]:
+    """套用黑名單與長度限制（單字元一律剔除），保序去重。"""
+    seen, out = set(), []
+    for a in aliases:
+        a = a.strip()
+        if len(a) < 2 or a.upper() in ALIAS_BLACKLIST or a in seen:
+            continue
+        seen.add(a)
+        out.append(a)
+    return out
+
+
+def fetch_tw_universe() -> Dict[str, dict]:
+    """抓上市+上櫃全市場公司清單（約 1,800 檔），alias 為簡稱與代號變體。
+
+    sector 留空（OpenAPI 產業別為代碼），人工策展清單的 sector / 綽號
+    會在 merge 階段疊加覆蓋。
+    """
+    out: Dict[str, dict] = {}
+    for url, suffix in TW_UNIVERSE_APIS:
+        rows = request_get(url, headers=_UNIVERSE_HEADERS, timeout=30).json()
+        for row in rows:
+            code = _row_field(row, "公司代號")
+            name = _row_field(row, "公司簡稱")
+            full = _row_field(row, "公司名稱")
+            if not code.isdigit() or not name:
+                continue
+            ticker = f"{code}{suffix}"
+            out[ticker] = {
+                "ticker": ticker,
+                "name_zh": name,
+                "name_en": _row_field(row, "英文簡稱"),
+                "market": "TW",
+                "sector": "",
+                "aliases": _clean_aliases([name, full, code, ticker]),
+            }
+    return out
+
+
+def _merge_curated(universe: Dict[str, dict], curated: Dict[str, dict]) -> Dict[str, dict]:
+    """全市場為底，人工策展疊加：sector / name_en / 綽號 alias 以策展為準。"""
+    merged = dict(universe)
+    for ticker, cur in curated.items():
+        if ticker in merged:
+            base = merged[ticker]
+            base["sector"] = cur["sector"] or base["sector"]
+            base["name_en"] = cur["name_en"] or base["name_en"]
+            base["aliases"] = _clean_aliases(base["aliases"] + cur["aliases"])
+        else:
+            merged[ticker] = cur
+    return merged
+
+
+def main(full_tw: bool = False) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    tw = _build(TW_RAW, "TW")
+    if full_tw:
+        print("[tw] 抓取 TWSE/TPEx 全市場清單...")
+        tw = _merge_curated(fetch_tw_universe(), tw)
+
     datasets = {
-        "tw_stocks.json": _build(TW_RAW, "TW"),
+        "tw_stocks.json": tw,
         "us_stocks.json": _build(US_RAW, "US"),
         "jp_stocks.json": _build(JP_RAW, "JP"),
     }
@@ -532,4 +623,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser(description="重生 TW/US/JP 個股字典")
+    ap.add_argument("--full-tw", action="store_true",
+                    help="台股改用 TWSE/TPEx OpenAPI 全市場清單（需網路），"
+                         "人工策展的 sector/綽號疊加其上")
+    main(ap.parse_args().full_tw)
