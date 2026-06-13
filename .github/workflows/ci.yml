@@ -5,6 +5,11 @@ on:
     branches: ["**"]
   pull_request:
 
+# PR 分支會同時觸發 push 與 pull_request，以 ref 分組並取消舊的 in-progress run，避免重複
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
