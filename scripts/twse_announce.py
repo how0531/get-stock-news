@@ -64,12 +64,17 @@ def fetch(markets: list[str] | None = None) -> list[dict]:
                 subject = _field(row, "主旨")
                 if not subject:
                     continue
+                detail = _field(row, "說明")
                 out.append(
                     {
                         "source": f"announce_{mkt}",
                         "category": label,
                         "title": f"[重大訊息] {name}({code}) {subject}",
-                        "summary": _field(row, "說明"),
+                        # 公告無記者，作者填發布公司
+                        "author": f"{name}({code})" if name else "公開資訊觀測站",
+                        "summary": detail,
+                        # 「說明」為公開法定公告全文，無版權疑慮，可全文存
+                        "content": detail,
                         # 無單篇 URL，組出 MOPS 查詢頁供人工查看
                         "url": f"https://mops.twse.com.tw/mops/web/t05sr01_1?step=1&co_id={code}",
                         "published_at": _roc_to_iso(

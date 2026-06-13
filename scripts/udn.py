@@ -8,9 +8,9 @@ import feedparser
 from bs4 import BeautifulSoup
 
 try:
-    from .common import request_get, to_taipei_iso
+    from .common import extract_author_from_entry, request_get, to_taipei_iso
 except ImportError:
-    from common import request_get, to_taipei_iso
+    from common import extract_author_from_entry, request_get, to_taipei_iso
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
@@ -52,14 +52,16 @@ def fetch(
                     "source": "udn",
                     "category": name,
                     "title": entry.get("title"),
+                    "author": extract_author_from_entry(entry),
                     "summary": entry.get("summary", ""),
+                    "content": "",
                     "url": entry.get("link"),
                     "published_at": to_taipei_iso(
                         entry.get("published") or entry.get("updated")
                     ),
                 }
                 if fetch_body:
-                    item["body"] = _parse_article(entry.link)
+                    item["content"] = _parse_article(entry.link)
                     time.sleep(1)
                 out.append(item)
         except Exception as e:

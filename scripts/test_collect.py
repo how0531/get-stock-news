@@ -33,6 +33,45 @@ def test_to_taipei_iso():
     assert common.to_taipei_iso(None) == ""
 
 
+def test_html_to_text():
+    assert common.html_to_text("<p>第一段</p><p>第二段</p>") == "第一段\n第二段"
+    assert common.html_to_text("") == ""
+
+
+def test_extract_author_from_entry():
+    assert common.extract_author_from_entry({"author": " 記者王小明 "}) == "記者王小明"
+    assert common.extract_author_from_entry({"authors": [{"name": "李四"}]}) == "李四"
+    assert common.extract_author_from_entry({"dc_creator": "張三"}) == "張三"
+    assert common.extract_author_from_entry({"title": "無作者"}) == ""
+
+
+def test_parse_article_fields_meta_and_body():
+    html = """
+    <html><head>
+      <meta name="author" content="陳記者">
+      <meta property="og:description" content="這是摘要">
+    </head><body>
+      <div class="entry-content"><p>內文第一段</p><p>內文第二段</p></div>
+    </body></html>
+    """
+    r = common.parse_article_fields(html)
+    assert r["author"] == "陳記者"
+    assert r["summary"] == "這是摘要"
+    assert r["content"] == "內文第一段\n內文第二段"
+
+
+def test_parse_article_fields_byline_fallback_and_custom_selector():
+    html = """
+    <html><body>
+      <span class="byline">本報訊</span>
+      <div class="article-body"><p>客製選擇器內文</p></div>
+    </body></html>
+    """
+    r = common.parse_article_fields(html, body_selectors=["div.article-body"])
+    assert r["author"] == "本報訊"
+    assert r["content"] == "客製選擇器內文"
+
+
 def test_norm_title():
     assert common.norm_title("台積電 法說會！(獨家)") == "台積電法說會獨家"
     assert common.norm_title("TSMC Beats  Estimates") == "tsmcbeatsestimates"
@@ -109,9 +148,10 @@ def test_actionable_ts_holiday_aware():
 def test_build_records_dedupe_and_pit():
     idx = [("台積電", "2330.TW")]
     items = [
-        {  # raw 項目（無 tickers/tags，現算）
+        {  # raw 項目（無 tickers/tags，現算）；帶 author/content
             "source": "cnyes", "category": "台股",
-            "title": "台積電法說會釋出樂觀展望", "summary": "",
+            "title": "台積電法說會釋出樂觀展望", "author": "鉅亨網記者",
+            "summary": "", "content": "台積電今日召開法說會……",
             "url": "https://a/1", "published_at": "2026-06-12T10:00:00+08:00",
         },
         {  # 同文轉載（標題同、URL 不同、發布較晚）-> 應被去重，保留較早那筆
@@ -136,6 +176,9 @@ def test_build_records_dedupe_and_pit():
 
     row_news = df[df["source"] == "cnyes"].iloc[0]
     assert row_news["tickers"] == ["2330.TW"]
+    # author/content 透傳至 processed
+    assert row_news["author"] == "鉅亨網記者"
+    assert row_news["content"] == "台積電今日召開法說會……"
     # 盤中發布 -> 當日 13:30 可行動
     assert row_news["actionable_ts"] == pd.Timestamp(2026, 6, 12, 13, 30)
 

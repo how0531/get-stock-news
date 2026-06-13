@@ -76,7 +76,7 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 |-------|------|------|------|
 | 1 連通性 | 確認每個來源可被讀取 | `scripts/healthcheck.py`（需網路） | 待有可用連線時執行 |
 | 2 結構地圖 | 盤點各站專欄、標記對股市有幫助的欄目 | `data/site_maps/*.json` + `scripts/site_map.py` | ✅ 11 來源已產出 |
-| 3 統一清洗 | 各來源對齊 `data/stream/*.jsonl` schema | `cleaning` 欄位 + `process_day.py` | 規格已定義於各地圖 |
+| 3 統一清洗 | 各來源對齊統一記錄 schema | `data/site_maps/_schema.json` + `process_day.py` | ✅ 14 欄位契約已定義並實作 |
 
 每份地圖含：`access`（method/endpoints/是否可回溯）、`columns`（全站專欄，每欄標 `stock_relevant`）、
 `stock_relevant_columns`、`noise_notes`（需過濾的雜訊）、`cleaning`（時間/去重對齊提示）、`verified_live`。
@@ -85,6 +85,17 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 python scripts/site_map.py            # 驗證所有地圖 schema/一致性，印出摘要表
 python scripts/site_map.py --index    # 另寫出 data/site_maps/_index.json（單一 manifest，供下游一次讀取）
 ```
+
+**統一記錄格式（Phase 3）**：所有來源清洗後對齊 `data/site_maps/_schema.json` 定義的 14 欄位，
+分四段：①識別（source/source_label/category）②內容（title/**author**/summary/**content**/url）
+③時間 PIT（publish_ts/ingestion_ts/actionable_ts）④衍生（tickers/tags，日終/下游補）。
+
+- **author 作者**：有就帶、缺則空字串。RSS 取 `dc:creator`/`author`（`common.extract_author_from_entry`）；
+  工商時報 `fetch_detail=True` 進內頁取 byline；官方公告填發布公司名。
+- **content 全文**：RSS/HTML 來源開 `fetch_content=True`（rss_sources）/`fetch_detail=True`（ctee）逐篇進內頁抽取
+  （多一個 request/篇，禮貌性 sleep）；cnyes 列表 API 已內含全文；官方公告「說明」即全文（公開法定資料）。
+  內文容器選擇器為泛用最佳推測（`common.DEFAULT_BODY_SELECTORS`），各來源可在 `SOURCES[sid]['body_selectors']` 覆蓋，待連線校正。
+  ⚠️ 一般媒體全文受版權保護，僅供個人量化研究、不重製對外發佈。
 
 > 11 份地圖全部 `verified_live: false`——欄目與端點由 WebSearch 研究而得（sandbox 對外網路受限，無法實連驗證）。
 > 待有可用連線（本機 / VPS / 開通白名單）後，跑 `healthcheck.py` 與實際抓取逐一校正，再改為 `true`。

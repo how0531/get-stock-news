@@ -11,11 +11,13 @@ from typing import Iterable
 import feedparser
 
 try:
-    from .common import request_get, to_taipei_iso
+    from .common import (
+        UA, extract_author_from_entry, fetch_article, request_get, to_taipei_iso,
+    )
 except ImportError:
-    from common import request_get, to_taipei_iso
-
-UA = "Mozilla/5.0"
+    from common import (
+        UA, extract_author_from_entry, fetch_article, request_get, to_taipei_iso,
+    )
 
 # source_id -> {label, feeds: {分類: feed_url}}
 SOURCES: dict[str, dict] = {
@@ -71,9 +73,15 @@ def _norm_time(entry) -> str:
     return to_taipei_iso(entry.get("published") or entry.get("updated"))
 
 
-def fetch_source(source_id: str, limit_per_feed: int = 15) -> list[dict]:
-    """抓取單一 RSS 來源，回傳標準化欄位。"""
+def fetch_source(source_id: str, limit_per_feed: int = 15,
+                 fetch_content: bool = False) -> list[dict]:
+    """抓取單一 RSS 來源，回傳標準化欄位。
+
+    fetch_content=True 時，逐篇進內頁抓全文（多一個 request/篇，較慢，禮貌性 sleep）；
+    RSS 只給摘要，全文一律需內頁抽取。內文容器選擇器取自 SOURCES[sid]['body_selectors']。
+    """
     conf = SOURCES[source_id]
+    selectors = conf.get("body_selectors")
     out: list[dict] = []
     for name, url in conf["feeds"].items():
         try:
@@ -82,23 +90,34 @@ def fetch_source(source_id: str, limit_per_feed: int = 15) -> list[dict]:
             if feed.bozo and not feed.entries:
                 raise RuntimeError(f"feed 解析失敗: {feed.bozo_exception}")
             for entry in feed.entries[:limit_per_feed]:
-                out.append(
-                    {
-                        "source": source_id,
-                        "category": name,
-                        "title": entry.get("title"),
-                        "summary": entry.get("summary", ""),
-                        "url": entry.get("link"),
-                        "published_at": _norm_time(entry),
-                    }
-                )
+                link = entry.get("link")
+                rec = {
+                    "source": source_id,
+                    "category": name,
+                    "title": entry.get("title"),
+                    "author": extract_author_from_entry(entry),
+                    "summary": entry.get("summary", ""),
+                    "content": "",
+                    "url": link,
+                    "published_at": _norm_time(entry),
+                }
+                if fetch_content and link:
+                    art = fetch_article(link, body_selectors=selectors)
+                    rec["content"] = art["content"]
+                    if not rec["author"]:
+                        rec["author"] = art["author"]
+                    if not rec["summary"]:
+                        rec["summary"] = art["summary"]
+                    time.sleep(1)
+                out.append(rec)
         except Exception as e:
             print(f"[{source_id}] {name} 抓取失敗: {e}")
         time.sleep(1)
     return out
 
 
-def fetch(sources: Iterable[str] | None = None, limit_per_feed: int = 15) -> list[dict]:
+def fetch(sources: Iterable[str] | None = None, limit_per_feed: int = 15,
+          fetch_content: bool = False) -> list[dict]:
     """抓取多個 RSS 來源；sources=None 時抓全部已註冊來源。"""
     chosen = list(sources) if sources else list(SOURCES.keys())
     out: list[dict] = []
@@ -106,7 +125,7 @@ def fetch(sources: Iterable[str] | None = None, limit_per_feed: int = 15) -> lis
         if sid not in SOURCES:
             print(f"[rss_sources] 未註冊的來源: {sid}（可用: {', '.join(SOURCES)}）")
             continue
-        out.extend(fetch_source(sid, limit_per_feed))
+        out.extend(fetch_source(sid, limit_per_feed, fetch_content=fetch_content))
     return out
 
 

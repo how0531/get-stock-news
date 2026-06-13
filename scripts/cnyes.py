@@ -5,9 +5,9 @@ import time
 from typing import Iterable
 
 try:
-    from .common import request_get, to_taipei_iso
+    from .common import html_to_text, request_get, to_taipei_iso
 except ImportError:
-    from common import request_get, to_taipei_iso
+    from common import html_to_text, request_get, to_taipei_iso
 
 BASE = "https://api.cnyes.com/media/api/v1/newslist/category/{}"
 HEADERS = {
@@ -46,7 +46,10 @@ def fetch(categories: Iterable[str] | None = None, limit: int = 20) -> list[dict
                         "source": "cnyes",
                         "category": CATEGORIES.get(cat, cat),
                         "title": item.get("title"),
+                        "author": (item.get("author") or "").strip(),
                         "summary": item.get("summary"),
+                        # cnyes 列表 API 已內含全文 HTML，無需再抓內頁
+                        "content": html_to_text(item.get("content", "")),
                         "url": f"https://news.cnyes.com/news/id/{item.get('newsId')}",
                         "published_at": to_taipei_iso(item.get("publishAt")),
                         "keywords": item.get("keyword", ""),

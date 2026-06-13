@@ -11,9 +11,11 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
+from bs4 import BeautifulSoup  # type: ignore
 from dateutil import parser as dtparser  # type: ignore
 
 TAIPEI = ZoneInfo("Asia/Taipei")
+UA = "Mozilla/5.0"
 
 
 def to_taipei_iso(value) -> str:
@@ -66,3 +68,95 @@ def request_get(
             if attempt < retries:
                 time.sleep(backoff * (2**attempt))
     raise last_exc
+
+
+# --------------------------------------------------------------------------- #
+# 作者 / 全文抽取（Phase 3 統一清洗）
+# --------------------------------------------------------------------------- #
+
+# 內文容器選擇器（依序嘗試）。各來源可在 fetch 時傳入專屬選擇器覆蓋；
+# 這些是泛用最佳推測，待有連線時以實測校正（見 data/site_maps/*.json 的 note）。
+DEFAULT_BODY_SELECTORS = [
+    "div.entry-content",
+    "div.article-content",
+    "div.article-body",
+    "article",
+    "main",
+]
+
+
+def html_to_text(html: str) -> str:
+    """把 HTML 片段轉成純文字（段落以換行分隔）；給已內含全文 HTML 的 API 用。"""
+    if not html:
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+    paras = [p.get_text(strip=True) for p in soup.find_all("p")]
+    return "\n".join(p for p in paras if p) or soup.get_text("\n", strip=True)
+
+
+def extract_author_from_entry(entry) -> str:
+    """從 feedparser entry 取作者；缺則回空字串。"""
+    for key in ("author", "dc_creator", "creator"):
+        v = entry.get(key) if hasattr(entry, "get") else None
+        if v:
+            return str(v).strip()
+    authors = entry.get("authors") if hasattr(entry, "get") else None
+    if authors:
+        first = authors[0]
+        name = first.get("name") if isinstance(first, dict) else first
+        if name:
+            return str(name).strip()
+    return ""
+
+
+def parse_article_fields(html: str, body_selectors: list[str] | None = None) -> dict:
+    """從文章 HTML 抽 author / summary / content。純函式，可離線測試。
+
+    author  : meta[author|article:author|dc.creator] -> .author/.byline 類別
+    summary : og:description -> meta[name=description]
+    content : body_selectors（或 DEFAULT_BODY_SELECTORS）命中容器內的段落文字
+    """
+    soup = BeautifulSoup(html or "", "html.parser")
+
+    author = ""
+    for attrs in (
+        {"name": "author"},
+        {"property": "article:author"},
+        {"name": "dc.creator"},
+        {"name": "dcterms.creator"},
+    ):
+        m = soup.find("meta", attrs=attrs)
+        if m and m.get("content"):
+            author = m["content"].strip()
+            break
+    if not author:
+        el = soup.select_one(".author, .byline, .article-author, [rel=author]")
+        if el:
+            author = el.get_text(strip=True)
+
+    summary = ""
+    d = (soup.find("meta", attrs={"property": "og:description"})
+         or soup.find("meta", attrs={"name": "description"}))
+    if d and d.get("content"):
+        summary = d["content"].strip()
+
+    content = ""
+    for sel in (body_selectors or DEFAULT_BODY_SELECTORS):
+        body_el = soup.select_one(sel)
+        if body_el:
+            paras = [p.get_text(strip=True) for p in body_el.find_all("p")]
+            content = "\n".join(p for p in paras if p) or body_el.get_text("\n", strip=True)
+            if content:
+                break
+
+    return {"author": author, "summary": summary, "content": content}
+
+
+def fetch_article(url: str, *, body_selectors: list[str] | None = None,
+                  ua: str = UA, **kwargs) -> dict:
+    """抓取單篇文章頁並抽 author/summary/content；失敗回空欄位字典，不外拋。"""
+    try:
+        resp = request_get(url, headers={"User-Agent": ua}, **kwargs)
+    except Exception:
+        return {"author": "", "summary": "", "content": ""}
+    return parse_article_fields(resp.text, body_selectors)

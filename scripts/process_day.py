@@ -104,7 +104,10 @@ def build_records(
             "source": item.get("source", ""),
             "category": item.get("category", ""),
             "title": title,
+            "author": item.get("author", ""),
             "summary": item.get("summary", ""),
+            # 相容舊鍵 body；統一輸出 content
+            "content": item.get("content", item.get("body", "")),
             "url": item.get("url", ""),
             "publish_ts": publish,
             "ingestion_ts": ingestion,

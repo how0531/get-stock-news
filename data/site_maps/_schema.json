@@ -19,7 +19,7 @@
     {"key": "title", "group": "內容", "type": "string", "required": true, "maps_to_user": "新聞標題", "desc": "新聞標題，已去頭尾空白", "availability": "全部"},
     {"key": "author", "group": "內容", "type": "string", "required": false, "maps_to_user": "作者", "desc": "記者/發稿人。缺則空字串。RSS 取 dc:creator/author；官方公告填發布機構或公司名", "availability": "部分（見 author_availability）"},
     {"key": "summary", "group": "內容", "type": "string", "required": false, "maps_to_user": "內文", "desc": "摘要/前言。RSS 與 API 直接提供，是預設的『內文』欄位；不涉全文重製", "availability": "多數（ctee 列表頁為空）"},
-    {"key": "content", "group": "內容", "type": "string", "required": false, "maps_to_user": "內文", "desc": "全文。選配，僅供本機個人研究，不重製/不對外發佈；一般媒體有版權預設留空，官方公告『說明』為公開法定資訊可全文存", "availability": "選配（需抓內頁；官方公告可全文）"},
+    {"key": "content", "group": "內容", "type": "string", "required": false, "maps_to_user": "內文", "desc": "全文。依使用者決定一律抓取：RSS/HTML 來源開 fetch_content/fetch_detail 進內頁抽取，cnyes API 已內含全文，官方公告『說明』即全文。僅供本機個人量化研究、不對外發佈", "availability": "全部（RSS/HTML 需開 fetch_content；cnyes/官方公告內建）"},
     {"key": "url", "group": "內容", "type": "string", "required": true, "maps_to_user": "", "desc": "原文網址，去重與歷史回溯依據", "availability": "全部"},
 
     {"key": "publish_ts", "group": "時間", "type": "iso8601", "required": true, "maps_to_user": "日期", "desc": "官方發布時間，Asia/Taipei ISO。使用者要的『日期』即此欄", "availability": "全部（已正規化）"},
@@ -39,5 +39,5 @@
     "yahoo_stock": "轉載源，author 應填原始媒體（去重後保留來源媒體）",
     "announce_twse/announce_tpex": "無記者，填公司名或固定『公開資訊觀測站』"
   },
-  "content_policy": "預設只存 summary（摘要）。一般媒體全文受版權保護（README 載明不重製全文）；官方重大訊息『說明』為公開法定資料，可存全文。content 欄如要填，僅限本機個人量化研究、不對外發佈。"
+  "content_policy": "依使用者決定抓取全文（content）。RSS/HTML 來源需開 fetch_content/fetch_detail 逐篇進內頁抽取（多一個 request/篇，較慢、禮貌性 sleep）；cnyes 列表 API 已內含全文；官方重大訊息『說明』即公開法定全文。注意：一般媒體全文受版權保護，本專案僅供個人量化研究、不重製對外發佈（README 載明）。"
 }

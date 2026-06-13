@@ -17,10 +17,10 @@ from typing import Iterable
 from bs4 import BeautifulSoup
 
 try:
-    from .common import request_get, to_taipei_iso
+    from .common import parse_article_fields, request_get, to_taipei_iso
     from .backfill_ctee import URL_DATE_RE, parse_article, _publish_str_to_iso
 except ImportError:
-    from common import request_get, to_taipei_iso
+    from common import parse_article_fields, request_get, to_taipei_iso
     from backfill_ctee import URL_DATE_RE, parse_article, _publish_str_to_iso
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -43,14 +43,25 @@ def _url_date_iso(url: str) -> str:
     return to_taipei_iso(f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]}")
 
 
-def _detail_publish_iso(url: str) -> str:
-    """抓文章頁取精確發布時間（台北 ISO）；失敗回空字串。"""
+def _detail_fields(url: str) -> dict:
+    """抓文章頁一次取得精確發布時間 + 作者 + 摘要 + 全文；失敗回空欄位。
+
+    publish/summary/body 用 backfill_ctee.parse_article（工商版型專屬選擇器），
+    author 用 common.parse_article_fields 補（parse_article 不抽作者）。
+    """
     try:
-        resp = request_get(url, headers=HEADERS)
-        iso = _publish_str_to_iso(parse_article(resp.text).get("publish_str", ""))
-        return to_taipei_iso(iso) if iso else ""
+        html = request_get(url, headers=HEADERS).text
     except Exception:
-        return ""
+        return {"publish": "", "author": "", "summary": "", "content": ""}
+    pa = parse_article(html)
+    af = parse_article_fields(html)
+    iso = _publish_str_to_iso(pa.get("publish_str", ""))
+    return {
+        "publish": to_taipei_iso(iso) if iso else "",
+        "author": af["author"],
+        "summary": pa.get("summary") or af["summary"],
+        "content": pa.get("body") or af["content"],
+    }
 
 
 def _parse_list(url: str, limit: int) -> list[dict]:
@@ -84,18 +95,22 @@ def fetch(
         try:
             for item in _parse_list(url, limit_per_cat):
                 pub = _url_date_iso(item["url"])
+                author = summary = content = ""
                 if fetch_detail:
-                    precise = _detail_publish_iso(item["url"])
-                    if precise:
-                        pub = precise
+                    det = _detail_fields(item["url"])
+                    if det["publish"]:
+                        pub = det["publish"]
+                    author, summary, content = det["author"], det["summary"], det["content"]
                     time.sleep(1)
                 out.append(
                     {
                         "source": "ctee",
                         "category": name,
                         "title": item["title"],
+                        "author": author,
                         "url": item["url"],
-                        "summary": "",
+                        "summary": summary,
+                        "content": content,
                         "published_at": pub,
                     }
                 )
