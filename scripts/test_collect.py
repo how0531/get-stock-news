@@ -8,6 +8,7 @@ import pandas as pd
 import common
 import healthcheck
 import process_day
+import site_map
 import storage
 import watch_intraday
 from ctee import _url_date_iso
@@ -189,6 +190,35 @@ def test_healthcheck_build_probes_selection():
     all_labels = [label for label, _ in healthcheck.build_probes(set())]
     assert {"cnyes", "udn", "ctee", "announce"}.issubset(set(all_labels))
     assert set(RSS_SOURCES_KEYS).issubset(set(all_labels))
+
+
+# --------------------------------------------------------------------------- #
+# site_map: Phase 2 結構地圖
+# --------------------------------------------------------------------------- #
+
+def test_site_maps_all_valid():
+    """已交付的 site_maps 全部通過 schema/一致性驗證。"""
+    maps = site_map.load_all()
+    assert maps, "data/site_maps 應至少有一份地圖"
+    problems = site_map.validate(maps)
+    assert problems == [], f"site_map 驗證未通過: {problems}"
+
+
+def test_site_maps_cover_registered_rss_sources():
+    """每個 rss_sources 註冊來源都要有對應 site_map。"""
+    maps = site_map.load_all()
+    assert set(RSS_SOURCES_KEYS).issubset(set(maps)), \
+        f"缺少 site_map 的 RSS 來源: {set(RSS_SOURCES_KEYS) - set(maps)}"
+    # 固定來源也要在
+    assert {"cnyes", "udn", "ctee", "twse"}.issubset(set(maps))
+
+
+def test_site_map_build_index():
+    maps = site_map.load_all()
+    index = site_map.build_index(maps)
+    assert index["n_sources"] == len(maps)
+    assert index["n_verified_live"] == sum(1 for m in maps.values() if m.get("verified_live"))
+    assert all("stock_relevant_columns" in s for s in index["sources"])
 
 
 def test_build_records_clock_skew_clamp():

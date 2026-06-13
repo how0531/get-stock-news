@@ -34,6 +34,7 @@ scripts/
 ├── process_day.py                      # 日終 ETL：raw + stream -> processed Parquet
 ├── common.py                           # 共用：台北時區正規化 / 標題去重 / HTTP retry
 ├── healthcheck.py                      # 一條指令探測所有來源存活狀態
+├── site_map.py                          # 來源結構地圖驗證 + manifest（Phase 2 交付物）
 ├── backfill_cnyes.py / backfill_udn.py # 歷史回抓
 ├── storage.py                          # PIT Parquet 儲存層（假日感知 actionable_ts）
 ├── extract_target_price.py             # Factset 目標價

@@ -67,6 +67,30 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 
 **轉載去重提醒**：中央社的稿常被 Yahoo、自由、ETtoday 轉載，同事件多 URL。搜集端已做**機械去重**（標題正規化後完全相同者視為同文，`common.norm_title`，watch_intraday / main / process_day 皆套用）；「標題相似但不相同」的語意聚合屬下游（已列入 stock-heat-model 待辦）。
 
+### 來源結構地圖（site_maps，三階段工程交付物）
+
+為了系統性確認「每個網站可讀 → 結構/專欄盤點 → 統一清洗」，每個來源都有一份結構地圖
+`data/site_maps/{source_id}.json`，由一個**具名 agent**（如「鉅亨網agent」「證交所agent」）研究產出：
+
+| Phase | 內容 | 入口 | 狀態 |
+|-------|------|------|------|
+| 1 連通性 | 確認每個來源可被讀取 | `scripts/healthcheck.py`（需網路） | 待有可用連線時執行 |
+| 2 結構地圖 | 盤點各站專欄、標記對股市有幫助的欄目 | `data/site_maps/*.json` + `scripts/site_map.py` | ✅ 11 來源已產出 |
+| 3 統一清洗 | 各來源對齊 `data/stream/*.jsonl` schema | `cleaning` 欄位 + `process_day.py` | 規格已定義於各地圖 |
+
+每份地圖含：`access`（method/endpoints/是否可回溯）、`columns`（全站專欄，每欄標 `stock_relevant`）、
+`stock_relevant_columns`、`noise_notes`（需過濾的雜訊）、`cleaning`（時間/去重對齊提示）、`verified_live`。
+
+```bash
+python scripts/site_map.py            # 驗證所有地圖 schema/一致性，印出摘要表
+python scripts/site_map.py --index    # 另寫出 data/site_maps/_index.json（單一 manifest，供下游一次讀取）
+```
+
+> 11 份地圖全部 `verified_live: false`——欄目與端點由 WebSearch 研究而得（sandbox 對外網路受限，無法實連驗證）。
+> 待有可用連線（本機 / VPS / 開通白名單）後，跑 `healthcheck.py` 與實際抓取逐一校正，再改為 `true`。
+> 研究中發現的端點修正建議（已記在各地圖 `note`）：科技新報改用 `finance.technews.tw/feed/` 取代全站 feed；
+> Yahoo 多為轉載源、跨源去重最關鍵；TPEx 注意/處置端點名稱依 swagger 推定，串接前需實測。
+
 ---
 
 ## When to use this skill
@@ -117,6 +141,7 @@ Trigger when user wants to **fetch or aggregate** news:
 |--------|---------|
 | `scripts/common.py` | Asia/Taipei 時間正規化、標題正規化去重 key、HTTP retry |
 | `scripts/healthcheck.py` | 一條指令探測所有來源存活狀態（取代逐一手動驗證） |
+| `scripts/site_map.py` | 載入/驗證 `data/site_maps/*.json` 結構地圖、彙整成 `_index.json` manifest |
 
 ### 歷史回抓
 | Script | Speed | Notes |
