@@ -45,8 +45,8 @@
     {
       "name": "基金",
       "url": "https://www.moneydj.com/KMDJ/RssCenter.aspx?svc=NR&fno=5&arg=X0",
-      "stock_relevant": true,
-      "note": "對應 newsList.aspx?a=mb040000（基金）。FundDJ 基智網基金/淨值相關新聞，間接 stock_relevant"
+      "stock_relevant": false,
+      "note": "對應 newsList.aspx?a=mb040000（基金）。FundDJ 基智網基金/淨值相關新聞，間接 stock_relevant 〔依使用者檢核排除〕"
     },
     {
       "name": "ETF",
@@ -73,7 +73,6 @@
     "台股",
     "個股情報",
     "產業分析",
-    "基金",
     "ETF",
     "美股/國際股市"
   ],

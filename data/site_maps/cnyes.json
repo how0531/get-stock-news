@@ -40,8 +40,8 @@
     {
       "name": "港股",
       "url": "https://news.cnyes.com/news/cat/hk_stock",
-      "stock_relevant": true,
-      "note": "category=hk_stock。香港與中國股市新聞，亞股投資相關。"
+      "stock_relevant": false,
+      "note": "category=hk_stock。香港與中國股市新聞，亞股投資相關。 〔依使用者檢核排除〕"
     },
     {
       "name": "美股預估",
@@ -52,14 +52,14 @@
     {
       "name": "外匯",
       "url": "https://news.cnyes.com/news/cat/forex",
-      "stock_relevant": true,
-      "note": "category=forex。匯市新聞，匯率與資金面影響股市，間接相關。"
+      "stock_relevant": false,
+      "note": "category=forex。匯市新聞，匯率與資金面影響股市，間接相關。 〔依使用者檢核排除〕"
     },
     {
       "name": "期貨",
       "url": "https://news.cnyes.com/news/cat/future",
-      "stock_relevant": true,
-      "note": "category=future。期貨與商品行情，含台指期、原油等，與股市連動。"
+      "stock_relevant": false,
+      "note": "category=future。期貨與商品行情，含台指期、原油等，與股市連動。 〔依使用者檢核排除〕"
     },
     {
       "name": "國際政經",
@@ -103,10 +103,7 @@
     "台股",
     "台股新聞",
     "美股/國際股",
-    "港股",
     "美股預估",
-    "外匯",
-    "期貨",
     "國際政經"
   ],
   "noise_notes": "理財(tw_money)偏個人理財生活內容；區塊鏈(bc)為加密貨幣與其快訊洗版；房產(cnyeshouse)為房市；基金(fund 子站)與選股弱相關；ESG 多為活動專題與業配。一手情報(advertorial)為業配廣編稿，應整段過濾。headline 含少量綜合非投資新聞需以關鍵字再篩。",
