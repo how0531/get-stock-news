@@ -1,5 +1,7 @@
 # get-stock-news
 
+![CI](https://github.com/how0531/get-stock-news/actions/workflows/ci.yml/badge.svg)
+
 美日台股市新聞彙整與熱度量化系統。從台灣主流財經媒體爬取新聞，建立 PIT 正確的資料管線，量化個股熱度，協助判斷盤前重點。
 
 ## 兩個 Claude Skills
@@ -15,7 +17,7 @@
 |------|------|----------|------|
 | 鉅亨網 cnyes.com | 公開 JSON API | ✅ 完整 | ✅ 已驗證 |
 | 經濟日報 money.udn.com | sitemap 分週切片 | ✅ ~100% | ✅ 已驗證 |
-| 工商時報 ctee.com.tw | HTML / WP REST API | ⚠️ TBD | ✅ 已驗證 |
+| 工商時報 ctee.com.tw | 列表頁 HTML（publish_ts 取自 URL 日期） | ✅ sitemap | ✅ 已驗證 |
 | 中央社 / 自由財經 / 科技新報 / ETtoday / 中時 / MoneyDJ / Yahoo股市 | RSS（`rss_sources.py` 註冊表） | ❌ | 🆕 待本機驗證 |
 | TWSE / TPEx 重大訊息 | OpenAPI（官方第一手） | ❌ | 🆕 待本機驗證 |
 
@@ -31,6 +33,7 @@ scripts/
 ├── watch_intraday.py                   # 盤中監看 + 事件串流（推播由下游 skill 負責）
 ├── process_day.py                      # 日終 ETL：raw + stream -> processed Parquet
 ├── common.py                           # 共用：台北時區正規化 / 標題去重 / HTTP retry
+├── healthcheck.py                      # 一條指令探測所有來源存活狀態
 ├── backfill_cnyes.py / backfill_udn.py # 歷史回抓
 ├── storage.py                          # PIT Parquet 儲存層（假日感知 actionable_ts）
 ├── extract_target_price.py             # Factset 目標價

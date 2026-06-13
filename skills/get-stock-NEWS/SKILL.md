@@ -32,14 +32,14 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 |--------|--------|------|-----------|-------|
 | 鉅亨網 cnyes.com | 公開 JSON API（`scripts/cnyes.py`） | ⚡ 最低，~1-2 分；盤中速報近即時 | ✅ 完整（API 支援 date range） | 必帶 `Referer: https://news.cnyes.com/` |
 | 經濟日報 UDN money | RSS 即時 + sitemap 分週切片（`scripts/udn.py`） | RSS ~5-15 分 | ✅ ~100%（過去 12 月） | sitemap: `/sitemap/staticmap/1001T{YYYYMM}W{N}` |
-| 工商時報 ctee | WP REST API 優先（有準確時間戳），HTML fallback（`scripts/ctee.py`） | API ~分鐘級 | ⚠️ TBD | 無公開 RSS；WP API 端點待本機驗證 |
+| 工商時報 ctee | 列表頁 HTML，publish_ts 取自 URL 內嵌日期（`scripts/ctee.py`） | 列表頁更新頻率 | ✅ sitemap 回補（`backfill_ctee.py`） | 無公開 RSS、WP API 已關閉(404)；URL `/news/{YYYYMMDD}...` 含日期，`fetch_detail=True` 可抓 `<meta pubdate>` 取精確時間 |
 
 > 共通行為：所有來源 `published_at` 一律正規化為 **Asia/Taipei ISO** 格式；HTTP 失敗自動 retry（指數退避 2 次）。
 
 ### 已實作，端點待本機驗證
 
 > 以下由 `scripts/rss_sources.py`（RSS 通用爬蟲）與 `scripts/twse_announce.py`（官方公告）支援。
-> feed URL 依公開資訊撰寫，**首次使用請各跑一次確認**（`python scripts/rss_sources.py cna` 等），失效就改 `SOURCES` 註冊表。
+> feed URL 依公開資訊撰寫，**首次使用請跑 `python scripts/healthcheck.py` 一次驗證所有端點**，失效的來源就改 `rss_sources.py` 的 `SOURCES` 註冊表。
 
 | source_id | 媒體 | Method | 內容範圍 | 延遲 | 特性 |
 |-----------|------|--------|---------|------|------|
@@ -112,10 +112,11 @@ Trigger when user wants to **fetch or aggregate** news:
 |--------|---------|
 | `scripts/process_day.py` | 當日 raw + stream → processed Parquet（PIT 三時間戳、同文去重） |
 
-### 共用層
+### 共用層 / 維運
 | Script | Purpose |
 |--------|---------|
 | `scripts/common.py` | Asia/Taipei 時間正規化、標題正規化去重 key、HTTP retry |
+| `scripts/healthcheck.py` | 一條指令探測所有來源存活狀態（取代逐一手動驗證） |
 
 ### 歷史回抓
 | Script | Speed | Notes |
@@ -159,7 +160,11 @@ pip install -r requirements.txt
 # 抓最新（全來源）
 PYTHONUTF8=1 python scripts/main.py
 
-# 只抓特定 RSS 來源（驗證端點時也用這個）
+# 來源健檢：一次驗證所有端點（存活/筆數/樣本），離開碼 0=全活、1=有失敗
+PYTHONUTF8=1 python scripts/healthcheck.py
+PYTHONUTF8=1 python scripts/healthcheck.py cnyes ctee   # 只測指定來源
+
+# 只抓特定 RSS 來源
 PYTHONUTF8=1 python scripts/rss_sources.py cna,moneydj
 
 # 官方重大訊息

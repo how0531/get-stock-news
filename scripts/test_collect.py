@@ -6,9 +6,12 @@ from datetime import datetime
 import pandas as pd
 
 import common
+import healthcheck
 import process_day
 import storage
 import watch_intraday
+from ctee import _url_date_iso
+from rss_sources import SOURCES as RSS_SOURCES_KEYS
 from twse_announce import _roc_to_iso
 
 
@@ -142,6 +145,50 @@ def test_build_records_dedupe_and_pit():
     assert (df["ingestion_ts"] >= df["publish_ts"]).all()
     # 通過 storage 的 schema/PIT 驗證
     storage.validate_schema(df, "processed")
+
+
+def test_ctee_url_date_iso():
+    # URL 內嵌 8 碼日期 -> 台北時間日粒度 ISO
+    url = "https://www.ctee.com.tw/news/20260612123456-430701"
+    assert _url_date_iso(url) == "2026-06-12T00:00:00+08:00"
+    # 無日期樣式 -> 空字串
+    assert _url_date_iso("https://www.ctee.com.tw/livenews") == ""
+
+
+# --------------------------------------------------------------------------- #
+# healthcheck
+# --------------------------------------------------------------------------- #
+
+def test_healthcheck_probe_success():
+    r = healthcheck.probe(
+        "demo",
+        lambda: [{"title": "標題A", "published_at": "2026-06-12T10:00:00+08:00"},
+                 {"title": "標題B", "published_at": ""}],
+    )
+    assert r["ok"] and r["count"] == 2 and r["with_ts"] == 1
+    assert r["detail"] == "標題A"
+
+
+def test_healthcheck_probe_handles_exception():
+    def boom():
+        raise RuntimeError("403 Forbidden")
+    r = healthcheck.probe("demo", boom)
+    assert not r["ok"] and r["count"] == 0
+    assert "403 Forbidden" in r["detail"]
+
+
+def test_healthcheck_probe_empty_is_not_ok():
+    r = healthcheck.probe("demo", lambda: [])
+    assert not r["ok"] and r["count"] == 0
+
+
+def test_healthcheck_build_probes_selection():
+    # 指定來源只組出該來源；未指定則涵蓋固定來源 + 所有 RSS
+    only = healthcheck.build_probes({"cnyes"})
+    assert [label for label, _ in only] == ["cnyes"]
+    all_labels = [label for label, _ in healthcheck.build_probes(set())]
+    assert {"cnyes", "udn", "ctee", "announce"}.issubset(set(all_labels))
+    assert set(RSS_SOURCES_KEYS).issubset(set(all_labels))
 
 
 def test_build_records_clock_skew_clamp():
