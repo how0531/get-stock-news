@@ -78,7 +78,7 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 
 | Phase | 內容 | 入口 | 狀態 |
 |-------|------|------|------|
-| 1 連通性 | 確認每個來源可被讀取 | `scripts/healthcheck.py`（需網路） | 待有可用連線時執行 |
+| 1 連通性 | 確認每個來源可被讀取 | `scripts/healthcheck.py`（需網路） | 待有可用連線時執行，逐項見 `data/site_maps/_verification_checklist.md` |
 | 2 結構地圖 | 盤點各站專欄、標記對股市有幫助的欄目 | `data/site_maps/*.json` + `scripts/site_map.py` | ✅ 11 來源已產出 |
 | 3 統一清洗 | 各來源對齊統一記錄 schema | `data/site_maps/_schema.json` + `process_day.py` | ✅ 15 欄位契約已定義並實作 |
 
