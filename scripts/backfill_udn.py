@@ -16,7 +16,7 @@
     123398 美股動態
 
 對每篇文章發 HTTP 取回 raw HTML，解析 title / publish_ts / category / body
-並以 PIT 設計分離 publish_ts (新聞時間) 與 ingestion_ts (抓取時間)。
+並以 PIT 設計分離 published_at (新聞時間) 與 ingestion_ts (抓取時間)。
 按日存檔至 data/raw/udn/YYYY-MM-DD.json，已抓過的 URL 寫入 checkpoint 以便續抓。
 
 Usage:
@@ -267,7 +267,7 @@ def run(start: datetime, end: datetime, *, max_articles: int | None = None) -> N
             "category": parsed["category"] or entry["category"],
             "title": parsed["title"],
             "body": parsed["body"],
-            "publish_ts": entry["publish_ts"],          # PIT publish time
+            "published_at": entry["publish_ts"],         # PIT publish time
             "publish_str_meta": parsed["publish_str"],   # raw <meta name="date"> value
             "ingestion_ts": ingestion_ts,                # PIT ingestion time
             "raw_html": resp.text,

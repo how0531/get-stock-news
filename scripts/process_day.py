@@ -111,6 +111,8 @@ def load_day_items(date: str) -> list[dict]:
             if not line.strip():
                 continue
             ev = json.loads(line)
+            # stream 事件 schema 的時間欄位叫 publish_ts；raw 層一律叫 published_at，
+            # 此處橋接讓 build_records 只需認得 published_at 一個名字
             ev.setdefault("published_at", ev.get("publish_ts", ""))
             items.append(ev)
     return items
@@ -131,7 +133,7 @@ def build_records(
         if not title:
             continue
         tkey = norm_title(title)
-        publish = _to_naive_taipei(item.get("published_at") or item.get("publish_ts"))
+        publish = _to_naive_taipei(item.get("published_at"))
         ingestion = _to_naive_taipei(item.get("ingestion_ts")) or default_ingestion
         # 來源時鐘誤差可能讓 publish 晚於我們的抓取時間；PIT 不變量要求
         # ingestion >= publish，以 publish 為下限校正

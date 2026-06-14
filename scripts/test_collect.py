@@ -178,10 +178,10 @@ def test_build_records_dedupe_and_pit():
             "title": "台積電法說會釋出樂觀展望！", "summary": "",
             "url": "https://b/2", "published_at": "2026-06-12T10:30:00+08:00",
         },
-        {  # stream 事件（已帶 tickers/tags，沿用不重算）
+        {  # stream 事件（已帶 tickers/tags，沿用不重算；經 load_day_items 正規化為 published_at）
             "source": "announce_twse", "category": "上市重大訊息",
             "title": "[重大訊息] 台積電(2330) 澄清", "summary": "",
-            "url": "https://mops/x", "publish_ts": "2026-06-12T14:10:00+08:00",
+            "url": "https://mops/x", "published_at": "2026-06-12T14:10:00+08:00",
             "ingestion_ts": "2026-06-12T14:11:00+08:00",
             "tickers": ["2330.TW"], "tags": ["signal_announcement"],
         },

@@ -13,12 +13,10 @@ import quick_heat
 # extract_target_price
 # --------------------------------------------------------------------------- #
 
-def test_pit_accepts_both_field_names():
-    """即時 collector 寫 published_at、backfill 寫 publish_ts，抽取器兩者都要接得到。"""
-    live = {"published_at": "2026-06-12T10:00:00+08:00"}
-    backfilled = {"publish_ts": "2026-06-12T10:00:00+08:00"}
-    assert extract_target_price._pit(live) == "2026-06-12T10:00:00+08:00"
-    assert extract_target_price._pit(backfilled) == "2026-06-12T10:00:00+08:00"
+def test_pit_reads_published_at():
+    """raw 層（即時與 backfill）統一寫 published_at，抽取器據此取 PIT 時間。"""
+    article = {"published_at": "2026-06-12T10:00:00+08:00"}
+    assert extract_target_price._pit(article) == "2026-06-12T10:00:00+08:00"
 
 
 def test_parse_factset_keeps_pit_from_live_raw():

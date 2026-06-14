@@ -9,7 +9,7 @@
 
 設計重點：
   - 標題優先，summary 補充
-  - PIT 時間戳保留（publish_ts）
+  - PIT 時間戳保留（published_at -> publish_ts）
   - 解析失敗的 Factset 速報以 parse_status=failed 留檔，供後續審視
 """
 from __future__ import annotations
@@ -27,8 +27,8 @@ OUT_DIR = PROJECT_ROOT / "data" / "target_price"
 
 
 def _pit(article: dict) -> str | None:
-    """取 PIT 發布時間。即時 collector 寫 published_at、backfill 寫 publish_ts，兩者都接。"""
-    return article.get("publish_ts") or article.get("published_at")
+    """取 PIT 發布時間。raw 層（即時與 backfill）統一寫 published_at。"""
+    return article.get("published_at")
 
 # ---------- Factset 速報 ----------
 # 標題模式 A：「鉅亨速報 - Factset 最新調查：應用材料AMAT-US的目標價調升至510元，幅度約13.33%」
