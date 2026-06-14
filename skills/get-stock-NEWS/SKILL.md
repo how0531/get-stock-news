@@ -172,11 +172,6 @@ Trigger when user wants to **fetch or aggregate** news:
 |--------|---------|
 | `scripts/storage.py` | PIT-correct Parquet save/load/asof_merge/query |
 
-### 訊號抽取
-| Script | Purpose |
-|--------|---------|
-| `scripts/extract_target_price.py` | Factset 目標價（100% 解析） |
-
 ### 字典維護
 | Script | Purpose |
 |--------|---------|
@@ -330,7 +325,7 @@ data/
 ├── stream/YYYY-MM-DD.jsonl                  ← 盤中事件串流（下游介接點）
 ├── state/seen_keys.json                     ← 盤中去重狀態
 ├── calendar/tw_holidays.json                ← 台股休市日（每年更新，actionable_ts 依此跳過）
-├── target_price/YYYY-MM-DD.json
+├── target_price/YYYY-MM-DD.json             ← 由 stock-heat-model 的 extract_target_price.py 產生（非本 skill）
 └── stocks/
     ├── tw_stocks.json  (162 檔 + 別名)
     ├── us_stocks.json  (144 檔 + 別名)
@@ -385,14 +380,11 @@ actionable_ts  ← 最早可決策時間（依台股交易日推算）
 
 ---
 
-## 目標價訊號抽取（Factset）
+## 目標價訊號抽取（Factset）→ 已移交 stock-heat-model
 
-鉅亨網每日約 50-60 則 Factset 速報，標題高度結構化、regex 100% 解析：
-
-- **TP-Change**：`應用材料 AMAT-US 目標價調升至 510 元，幅度 13.33%`
-- **EPS-Update**：`BABA-US EPS 下修至 6.73 元`
-
-輸出：`data/target_price/YYYY-MM-DD.json`，結構化欄位含 `ticker`, `action`, `target_price`, `change_pct`, `publish_ts`。
+本 skill 只負責**搜集** Factset 速報原文（鉅亨網每日約 50-60 則，落在 `data/raw/cnyes/`）。
+從中 regex 抽取結構化目標價訊號（`ticker/action/target_price/change_pct`）屬下游分析，
+已移至 `skills/stock-heat-model/scripts/extract_target_price.py`，輸出 `data/target_price/YYYY-MM-DD.json`。
 
 **注意**：Factset 速報集中盤後 20:15 發布 → `actionable_ts` 必為次一工作日 09:00。
 

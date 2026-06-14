@@ -20,8 +20,9 @@ import re
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-RAW_DIR = PROJECT_ROOT / "data" / "raw" / "cnyes"
+# repo 根：本檔在 skills/stock-heat-model/scripts/ 下，往上三層
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+RAW_DIR = PROJECT_ROOT / "data" / "raw" / "cnyes"  # 消費 get-stock-NEWS 產出的 raw
 OUT_DIR = PROJECT_ROOT / "data" / "target_price"
 
 

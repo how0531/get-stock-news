@@ -37,9 +37,12 @@ scripts/
 ├── site_map.py                          # 來源結構地圖驗證 + manifest（Phase 2 交付物）
 ├── backfill_cnyes.py / backfill_udn.py # 歷史回抓
 ├── storage.py                          # PIT Parquet 儲存層（假日感知 actionable_ts）
-├── extract_target_price.py             # Factset 目標價
-├── build_stock_dict.py                 # 個股字典維護（--full-tw 全市場 ~1,800 檔）
-└── quick_heat.py                       # 簡化版熱度（sanity check）
+└── build_stock_dict.py                 # 個股字典維護（--full-tw 全市場 ~1,800 檔）
+
+skills/stock-heat-model/scripts/         # 熱度模型（消費 get-stock-NEWS 產出，非搜集層）
+├── extract_target_price.py             # 券商目標價/EPS 訊號抽取（Factset + 一般新聞 regex）
+├── quick_heat.py                       # v1 簡化版熱度（sanity check）
+└── test_heat.py                        # 上述離線測試
 ```
 
 ## 安裝與使用

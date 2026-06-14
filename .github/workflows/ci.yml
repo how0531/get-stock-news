@@ -28,8 +28,14 @@ jobs:
           pip install pytest
 
       - name: Compile all scripts
-        run: python -m compileall -q scripts
+        run: |
+          python -m compileall -q scripts
+          python -m compileall -q skills/stock-heat-model/scripts
 
-      - name: Run offline test suite
+      - name: Run get-stock-NEWS offline test suite
         working-directory: scripts
         run: python -m pytest test_storage.py test_collect.py -q
+
+      - name: Run stock-heat-model offline test suite
+        working-directory: skills/stock-heat-model/scripts
+        run: python -m pytest test_heat.py -q

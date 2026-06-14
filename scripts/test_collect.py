@@ -6,7 +6,6 @@ from datetime import datetime
 import pandas as pd
 
 import common
-import extract_target_price
 import healthcheck
 import process_day
 import site_map
@@ -209,21 +208,6 @@ def test_build_records_dedupe_and_pit():
     assert (df["ingestion_ts"] >= df["publish_ts"]).all()
     # 通過 storage 的 schema/PIT 驗證
     storage.validate_schema(df, "processed")
-
-
-def test_extract_target_price_pit_accepts_both_field_names():
-    """即時 collector 寫 published_at、backfill 寫 publish_ts，抽取器兩者都要接得到。"""
-    live = {"published_at": "2026-06-12T10:00:00+08:00"}
-    backfilled = {"publish_ts": "2026-06-12T10:00:00+08:00"}
-    assert extract_target_price._pit(live) == "2026-06-12T10:00:00+08:00"
-    assert extract_target_price._pit(backfilled) == "2026-06-12T10:00:00+08:00"
-    # Factset 標題用即時 raw（published_at）也要保住 PIT 時間（修正前會是 None）
-    art = {
-        "title": "鉅亨速報 - Factset 最新調查：旺矽(6223-TW)目標價調升至4500元，幅度約6.76%",
-        "published_at": "2026-06-12T10:00:00+08:00", "url": "https://x/1",
-    }
-    sig = extract_target_price.parse_factset(art)
-    assert sig["publish_ts"] == "2026-06-12T10:00:00+08:00"
 
 
 def test_ctee_url_date_iso():
