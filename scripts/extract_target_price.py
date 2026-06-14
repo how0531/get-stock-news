@@ -18,14 +18,16 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw" / "cnyes"
 OUT_DIR = PROJECT_ROOT / "data" / "target_price"
-TZ_TAIPEI = timezone(timedelta(hours=8))
+
+
+def _pit(article: dict) -> str | None:
+    """取 PIT 發布時間。即時 collector 寫 published_at、backfill 寫 publish_ts，兩者都接。"""
+    return article.get("publish_ts") or article.get("published_at")
 
 # ---------- Factset 速報 ----------
 # 標題模式 A：「鉅亨速報 - Factset 最新調查：應用材料AMAT-US的目標價調升至510元，幅度約13.33%」
@@ -73,15 +75,6 @@ BROKERS = [
 # 排序：較長的字串放前面，避免「摩根」吃掉「摩根士丹利」
 BROKERS_SORTED = sorted(set(BROKERS), key=len, reverse=True)
 RE_BROKER = re.compile("(" + "|".join(map(re.escape, BROKERS_SORTED)) + ")")
-
-# 一般新聞抽取：標題裡有 broker + 「目標價」+ 數字
-RE_GENERIC_TP = re.compile(
-    r"(?P<broker>" + "|".join(map(re.escape, BROKERS_SORTED)) + r")"
-    r"[^。，,]{0,40}?"
-    r"目標價"
-    r"[^。，,0-9]{0,10}?"
-    r"(?P<price>[0-9]+(?:\.[0-9]+)?)\s*元?"
-)
 
 RE_TW_TICKER = re.compile(r"\(?(\d{4,6})[-\s]?TW\)?|\(?(\d{4,6})\)")
 RE_US_TICKER = re.compile(r"\(?([A-Z]{1,5})[-\s]?US\)?")
@@ -138,7 +131,7 @@ def parse_factset(article: dict) -> dict | None:
             "currency": _ticker_currency(ticker),
             "change_pct": float(m.group("pct")),
             "broker": "Factset (aggregated)",
-            "publish_ts": article.get("publish_ts"),
+            "publish_ts": _pit(article),
             "source_url": article.get("url"),
             "raw_title": title,
             "parse_status": "ok",
@@ -157,7 +150,7 @@ def parse_factset(article: dict) -> dict | None:
             "currency": _ticker_currency(ticker),
             "change_pct": None,
             "broker": "Factset (aggregated)",
-            "publish_ts": article.get("publish_ts"),
+            "publish_ts": _pit(article),
             "source_url": article.get("url"),
             "raw_title": title,
             "parse_status": "ok",
@@ -173,7 +166,7 @@ def parse_factset(article: dict) -> dict | None:
         "currency": None,
         "change_pct": None,
         "broker": "Factset (aggregated)",
-        "publish_ts": article.get("publish_ts"),
+        "publish_ts": _pit(article),
         "source_url": article.get("url"),
         "raw_title": title,
         "parse_status": "failed",
@@ -222,7 +215,7 @@ def parse_generic(article: dict) -> dict | None:
         "currency": "TWD" if market == "TW" else ("USD" if market == "US" else None),
         "change_pct": None,
         "broker": bm.group(1),
-        "publish_ts": article.get("publish_ts"),
+        "publish_ts": _pit(article),
         "source_url": article.get("url"),
         "raw_title": title,
         "parse_status": "ok",

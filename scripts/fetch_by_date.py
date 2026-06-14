@@ -2,16 +2,17 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import requests
 from dateutil import parser as dtparser  # type: ignore
 
 try:
     from .cnyes import CATEGORIES as CNYES_CATS
+    from .common import request_get, to_taipei_iso
     from .udn import FEEDS as UDN_FEEDS
 except ImportError:  # 直接以 python scripts/fetch_by_date.py 執行
     from cnyes import CATEGORIES as CNYES_CATS
+    from common import request_get, to_taipei_iso
     from udn import FEEDS as UDN_FEEDS
 import feedparser
 
@@ -31,13 +32,11 @@ def fetch_cnyes_by_date(target: datetime.date) -> list[dict]:
     out: list[dict] = []
     for cat, cname in CNYES_CATS.items():
         try:
-            r = requests.get(
+            r = request_get(
                 CNYES_BASE.format(cat),
                 params={"limit": 30, "startAt": start_ts, "endAt": end_ts},
                 headers=CNYES_HEAD,
-                timeout=10,
             )
-            r.raise_for_status()
             for item in r.json()["items"]["data"]:
                 out.append(
                     {
@@ -45,9 +44,8 @@ def fetch_cnyes_by_date(target: datetime.date) -> list[dict]:
                         "category": cname,
                         "title": item.get("title"),
                         "url": f"https://news.cnyes.com/news/id/{item.get('newsId')}",
-                        "published_at": datetime.fromtimestamp(
-                            item.get("publishAt", 0)
-                        ).isoformat(),
+                        # epoch -> Asia/Taipei ISO（原本用 naive fromtimestamp，UTC 主機會錯 8 小時）
+                        "published_at": to_taipei_iso(item.get("publishAt")),
                     }
                 )
         except Exception as e:

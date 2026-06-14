@@ -159,23 +159,42 @@ def poll_once(
         if item.get("ticker_hint") and item["ticker_hint"] not in tickers:
             tickers.insert(0, item["ticker_hint"])
 
-        event = {
-            "event_id": f"{now:%Y%m%d%H%M%S}-{new_count:04d}",
-            "source": item["source"],
-            "category": item.get("category", ""),
-            "title": item["title"],
-            "url": item.get("url", ""),
-            "publish_ts": item.get("published_at", ""),
-            "ingestion_ts": now.isoformat(),
-            "tickers": tickers,
-            "tags": tags,
-        }
+        event = build_event(
+            item,
+            event_id=f"{now:%Y%m%d%H%M%S}-{new_count:04d}",
+            ingestion_iso=now.isoformat(),
+            tickers=tickers,
+            tags=tags,
+        )
         with open(stream_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(event, ensure_ascii=False) + "\n")
 
         log(f"  + [{item['source']}] {item['title']}  tickers={tickers} tags={tags}")
 
     return new_count
+
+
+def build_event(item: dict, event_id: str, ingestion_iso: str,
+                tickers: list[str], tags: list[str]) -> dict:
+    """組事件串流記錄（純函式，可離線測試）。
+
+    與日終 processed 的統一格式對齊：帶 author/summary/content，
+    讓官方公告全文與 fetch_content 抓到的內文不會在串流路徑被丟棄。
+    """
+    return {
+        "event_id": event_id,
+        "source": item["source"],
+        "category": item.get("category", ""),
+        "title": item["title"],
+        "author": item.get("author", ""),
+        "summary": item.get("summary", ""),
+        "content": item.get("content", ""),
+        "url": item.get("url", ""),
+        "publish_ts": item.get("published_at", ""),
+        "ingestion_ts": ingestion_iso,
+        "tickers": tickers,
+        "tags": tags,
+    }
 
 
 def in_market_hours(now: datetime | None = None) -> bool:
