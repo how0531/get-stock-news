@@ -277,6 +277,68 @@ def test_site_map_build_index():
     assert all("stock_relevant_columns" in s for s in index["sources"])
 
 
+# --------------------------------------------------------------------------- #
+# process_day: Tier 2 去重（內文指紋，標題改寫但同文轉載）
+# --------------------------------------------------------------------------- #
+
+_LONG_CONTENT = (
+    "台積電法說會釋出樂觀展望，三大法人齊聲喊買，外資加碼力道強勁，"
+    "目標價上看千元大關不是夢，市場人士分析後續走勢仍偏多操作為主，後市可期"
+)
+
+
+def test_content_fingerprint_min_length():
+    assert process_day._content_fingerprint("太短的內文") == ""
+    fp = process_day._content_fingerprint(_LONG_CONTENT)
+    assert len(fp) == process_day.FINGERPRINT_LEN
+
+
+def test_build_records_tier2_dedup_reworded_title_same_content():
+    items = [
+        {  # 原始報導
+            "source": "cna", "category": "財經",
+            "title": "台積電法說會展望樂觀", "content": _LONG_CONTENT,
+            "summary": "", "url": "https://cna/1",
+            "published_at": "2026-06-12T10:00:00+08:00",
+        },
+        {  # yahoo 引用同篇全文、標題改寫，發布較晚 -> 應依內文指紋合併
+            "source": "yahoo_stock", "category": "台股",
+            "title": "外資喊買台積電 目標價上看千元", "content": _LONG_CONTENT,
+            "summary": "", "url": "https://yahoo/2",
+            "published_at": "2026-06-12T11:00:00+08:00",
+        },
+    ]
+    df = process_day.build_records(
+        items, default_ingestion=datetime(2026, 6, 12, 12, 0), alias_index=[]
+    )
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["source"] == "cna"  # 較早發布者為主
+    assert row["also_reported_by"] == ["yahoo_stock"]
+
+
+def test_build_records_tier2_dedup_outside_window_not_merged():
+    items = [
+        {
+            "source": "cna", "category": "財經",
+            "title": "台積電法說會展望樂觀", "content": _LONG_CONTENT,
+            "summary": "", "url": "https://cna/1",
+            "published_at": "2026-06-01T10:00:00+08:00",
+        },
+        {  # 3 天後舊聞重炒，超出 48 小時去重時間窗 -> 視為各自獨立事件
+            "source": "yahoo_stock", "category": "台股",
+            "title": "外資喊買台積電 目標價上看千元", "content": _LONG_CONTENT,
+            "summary": "", "url": "https://yahoo/2",
+            "published_at": "2026-06-04T10:00:00+08:00",
+        },
+    ]
+    df = process_day.build_records(
+        items, default_ingestion=datetime(2026, 6, 4, 12, 0), alias_index=[]
+    )
+    assert len(df) == 2
+    assert (df["also_reported_by"].apply(len) == 0).all()
+
+
 def test_build_records_clock_skew_clamp():
     # 來源時鐘快於我們：ingestion 被校正為不早於 publish
     items = [{

@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -51,6 +51,52 @@ def _to_naive_taipei(value) -> datetime | None:
 def _record_id(item: dict) -> str:
     key = f"{norm_title(item.get('title', ''))}|{item.get('url', '')}"
     return hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+
+
+# Tier 2 去重：標題經改寫但全文/摘要相同（如 yahoo 引用其他來源全文）的轉載
+FINGERPRINT_LEN = 60  # 內文正規化後取前 N 字作指紋；過短視為無法判定，不參與比對
+DEDUP_WINDOW = timedelta(hours=48)  # 超出時間窗視為各自獨立事件（如舊聞重炒），不合併
+
+
+def _content_fingerprint(text: str) -> str:
+    """內文正規化後取前 FINGERPRINT_LEN 字；過短（含空字串）回空字串。"""
+    norm = norm_title(text)
+    return norm[:FINGERPRINT_LEN] if len(norm) >= FINGERPRINT_LEN else ""
+
+
+def _merge_reprints(records: list[dict]) -> list[dict]:
+    """Tier 2 去重：依內文指紋合併「標題改寫但全文相同」的轉載（如 yahoo 引用其他來源全文）。
+
+    同指紋且 publish_ts 落在 DEDUP_WINDOW 內者視為同一事件，保留最早一筆，
+    其餘來源記於 also_reported_by；指紋不同、無指紋或超出時間窗者各自保留。
+    """
+    groups: dict[str, list[dict]] = {}
+    out: list[dict] = []
+    for rec in records:
+        rec.setdefault("also_reported_by", [])
+        fp = _content_fingerprint(rec["content"] or rec["summary"])
+        if fp:
+            groups.setdefault(fp, []).append(rec)
+        else:
+            out.append(rec)
+
+    for group in groups.values():
+        group.sort(key=lambda r: r["publish_ts"] or datetime.max)
+        clusters: list[list[dict]] = []
+        for rec in group:
+            for cluster in clusters:
+                last_pub, cur_pub = cluster[-1]["publish_ts"], rec["publish_ts"]
+                if (last_pub is not None and cur_pub is not None
+                        and cur_pub - last_pub <= DEDUP_WINDOW):
+                    cluster.append(rec)
+                    break
+            else:
+                clusters.append([rec])
+        for primary, *dups in clusters:
+            primary["also_reported_by"] = sorted({d["source"] for d in dups if d["source"]})
+            out.append(primary)
+
+    return out
 
 
 def load_day_items(date: str) -> list[dict]:
@@ -128,7 +174,7 @@ def build_records(
             if cur_pub < prev_pub:
                 by_title[tkey] = rec
 
-    df = pd.DataFrame(list(by_title.values()))
+    df = pd.DataFrame(_merge_reprints(list(by_title.values())))
     if df.empty:
         return pd.DataFrame(columns=storage.PROCESSED_REQUIRED)
     for col in ("publish_ts", "ingestion_ts", "actionable_ts"):

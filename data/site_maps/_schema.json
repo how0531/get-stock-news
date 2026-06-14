@@ -27,7 +27,8 @@
     {"key": "actionable_ts", "group": "時間", "type": "iso8601", "required": true, "maps_to_user": "", "desc": "最早可合法用於決策/回測的時間（假日感知）。回測一律用此欄", "availability": "全部（系統，compute_actionable_ts）"},
 
     {"key": "tickers", "group": "衍生", "type": "list[string]", "required": false, "maps_to_user": "", "desc": "比對到的個股代號（2330.TW…），供下游熱度/推播；抓取層可留空，日終補", "availability": "衍生"},
-    {"key": "tags", "group": "衍生", "type": "list[string]", "required": false, "maps_to_user": "", "desc": "事件分類（signal_target_price / signal_announcement / noise_intraday_tick…）", "availability": "衍生"}
+    {"key": "tags", "group": "衍生", "type": "list[string]", "required": false, "maps_to_user": "", "desc": "事件分類（signal_target_price / signal_announcement / noise_intraday_tick…）", "availability": "衍生"},
+    {"key": "also_reported_by", "group": "衍生", "type": "list[string]", "required": false, "maps_to_user": "", "desc": "Tier 2 去重：內文指紋（正規化後前 60 字）相同且 publish_ts 在 48 小時內者視為同一事件轉載，本欄記錄其他 source 代號（如 yahoo_stock 引用 cna 全文改寫標題）；未比對到則為空列表", "availability": "衍生（process_day._merge_reprints）"}
   ],
   "author_availability": {
     "cnyes": "API 可能含發稿來源欄位，待 Phase 1 連線驗證",
