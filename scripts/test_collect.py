@@ -239,6 +239,19 @@ def test_healthcheck_build_probes_selection():
 # site_map: Phase 2 結構地圖
 # --------------------------------------------------------------------------- #
 
+def test_rss_body_selectors_wellformed():
+    """已登記的 body_selectors 必為非空字串列表（fallback 結尾應含泛用選擇器）。"""
+    from rss_sources import SOURCES
+    for sid, conf in SOURCES.items():
+        sels = conf.get("body_selectors")
+        if sels is None:
+            continue
+        assert isinstance(sels, list) and sels, f"{sid}: body_selectors 應為非空 list"
+        assert all(isinstance(s, str) and s.strip() for s in sels), f"{sid}: 選擇器須為非空字串"
+        # 結尾保留泛用 fallback，避免站別選擇器失準時抓不到內文
+        assert sels[-1] in {"article", "main"}, f"{sid}: 建議以 article/main 收尾作 fallback"
+
+
 def test_site_maps_all_valid():
     """已交付的 site_maps 全部通過 schema/一致性驗證。"""
     maps = site_map.load_all()

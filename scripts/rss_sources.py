@@ -19,19 +19,22 @@ except ImportError:
         UA, extract_author_from_entry, fetch_article, request_get, to_taipei_iso,
     )
 
-# source_id -> {label, feeds: {分類: feed_url}}
+# source_id -> {label, feeds: {分類: feed_url}, body_selectors?: [內文容器選擇器]}
+# body_selectors 依信心排序、結尾留泛用 fallback；研究自公開爬蟲實作，待連線實測校正。
 SOURCES: dict[str, dict] = {
     "cna": {
         "label": "中央社",
         "feeds": {
             "財經": "https://feeds.feedburner.com/rsscna/finance",
         },
+        "body_selectors": ["div.paragraph", "article", "main"],  # 中信心
     },
     "ltn": {
         "label": "自由財經",
         "feeds": {
             "財經": "https://news.ltn.com.tw/rss/business.xml",
         },
+        "body_selectors": ["div.text", "div[itemprop=articleBody]", "article", "main"],  # 中信心
     },
     "technews": {
         "label": "科技新報",
@@ -40,24 +43,29 @@ SOURCES: dict[str, dict] = {
         "feeds": {
             "全站": "https://technews.tw/feed/",
         },
+        "body_selectors": ["div.indent", "div.entry-content", "article", "main"],  # 中信心（WP）
     },
     "ettoday": {
         "label": "ETtoday財經",
         "feeds": {
             "財經": "https://feeds.feedburner.com/ettoday/finance",
         },
+        "body_selectors": ["div.story", "article", "main"],  # 中高信心
     },
     "chinatimes": {
         "label": "中時新聞網",
         "feeds": {
             "財經即時": "https://www.chinatimes.com/rss/realtimenews-finance.xml",
         },
+        "body_selectors": ["div.article-body", "article", "main"],  # 高信心（程式碼實證）
     },
     "moneydj": {
         "label": "MoneyDJ理財網",
         "feeds": {
             "頭條新聞": "https://www.moneydj.com/KMDJ/RssCenter.aspx?svc=NR&fno=1&arg=X0",
         },
+        # NewsViewer 版型未確認，低信心，主要靠泛用 fallback
+        "body_selectors": ["article", "div.article-text", "main"],
     },
     "yahoo_stock": {
         "label": "Yahoo奇摩股市",
@@ -65,6 +73,7 @@ SOURCES: dict[str, dict] = {
             "台股": "https://tw.stock.yahoo.com/rss?category=tw-market",
             "國際股市": "https://tw.stock.yahoo.com/rss?category=intl-markets",
         },
+        "body_selectors": ["div.caas-body", "article", "main"],  # 高信心（Yahoo CaaS）
     },
 }
 
