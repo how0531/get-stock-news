@@ -4,7 +4,7 @@
 依日期分檔存於 data/raw/cnyes/YYYY-MM-DD.json。
 
 設計重點:
-- PIT 時間戳分離（publish_ts / ingestion_ts）
+- PIT 時間戳分離（published_at / ingestion_ts）
 - 完整保留 raw_api_response
 - 斷點續抓（日檔存在即跳過）
 - rate limit + 指數退避 retry
@@ -92,10 +92,10 @@ def _fetch_range(category: str, start_ts: int, end_ts: int) -> list[dict]:
 
 
 def _normalize(item: dict, category_id: str, ingestion_iso: str) -> dict:
-    publish_at = item.get("publishAt", 0)
-    publish_ts = (
-        datetime.fromtimestamp(publish_at, tz=TZ_TAIPEI).isoformat()
-        if publish_at
+    publish_at_ts = item.get("publishAt", 0)
+    published_at = (
+        datetime.fromtimestamp(publish_at_ts, tz=TZ_TAIPEI).isoformat()
+        if publish_at_ts
         else None
     )
     news_id = item.get("newsId")
@@ -107,9 +107,9 @@ def _normalize(item: dict, category_id: str, ingestion_iso: str) -> dict:
         "url": f"https://news.cnyes.com/news/id/{news_id}" if news_id else None,
         "category": CATEGORIES.get(category_id, category_id),
         "category_id": category_id,
-        "publish_ts": publish_ts,
+        "published_at": published_at,
         "ingestion_ts": ingestion_iso,
-        "keyword": item.get("keyword", ""),
+        "keywords": item.get("keyword", ""),
         "stock_codes_from_api": item.get("market") or item.get("stock") or [],
         "raw_api_response": item,
     }

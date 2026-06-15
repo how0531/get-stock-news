@@ -3,6 +3,8 @@ data/raw/
 data/processed/
 data/factors/
 data/target_price/
+data/stream/
+data/state/
 
 # Keep curated assets
 !data/stocks/

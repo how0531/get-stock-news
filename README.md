@@ -1,5 +1,7 @@
 # get-stock-news
 
+![CI](https://github.com/how0531/get-stock-news/actions/workflows/ci.yml/badge.svg)
+
 美日台股市新聞彙整與熱度量化系統。從台灣主流財經媒體爬取新聞，建立 PIT 正確的資料管線，量化個股熱度，協助判斷盤前重點。
 
 ## 兩個 Claude Skills
@@ -11,22 +13,36 @@
 
 ## 資料來源
 
-| 來源 | 方式 | 歷史回溯 |
-|------|------|----------|
-| 鉅亨網 cnyes.com | 公開 JSON API | ✅ 完整 |
-| 經濟日報 money.udn.com | sitemap 分週切片 | ✅ ~100% |
-| 工商時報 ctee.com.tw | HTML / WP REST API | ⚠️ TBD |
+| 來源 | 方式 | 歷史回溯 | 狀態 |
+|------|------|----------|------|
+| 鉅亨網 cnyes.com | 公開 JSON API | ✅ 完整 | ✅ 已驗證 |
+| 經濟日報 money.udn.com | sitemap 分週切片 | ✅ ~100% | ✅ 已驗證 |
+| 工商時報 ctee.com.tw | 列表頁 HTML（publish_ts 取自 URL 日期） | ✅ sitemap | ✅ 已驗證 |
+| 中央社 / 自由財經 / 科技新報 / ETtoday / 中時 / MoneyDJ / Yahoo股市 | RSS（`rss_sources.py` 註冊表） | ❌ | 🆕 待本機驗證 |
+| TWSE / TPEx 重大訊息 | OpenAPI（官方第一手） | ❌ | 🆕 待本機驗證 |
+
+完整來源清單（含延遲、轉載去重提醒、規劃中來源）見 [skills/get-stock-NEWS/SKILL.md](skills/get-stock-NEWS/SKILL.md)。
 
 ## 主要 Scripts
 
 ```
 scripts/
 ├── cnyes.py / udn.py / ctee.py        # 即時抓取
+├── rss_sources.py                      # RSS 通用爬蟲（多家媒體註冊表）
+├── twse_announce.py                    # TWSE/TPEx 官方重大訊息
+├── watch_intraday.py                   # 盤中監看 + 事件串流（推播由下游 skill 負責）
+├── process_day.py                      # 日終 ETL：raw + stream -> processed Parquet
+├── common.py                           # 共用：台北時區正規化 / 標題去重 / HTTP retry
+├── healthcheck.py                      # 一條指令探測所有來源存活狀態
+├── site_map.py                          # 來源結構地圖驗證 + manifest（Phase 2 交付物）
 ├── backfill_cnyes.py / backfill_udn.py # 歷史回抓
-├── storage.py                          # PIT Parquet 儲存層
-├── extract_target_price.py             # Factset 目標價
-├── build_stock_dict.py                 # 個股字典維護
-└── quick_heat.py                       # 簡化版熱度（sanity check）
+├── storage.py                          # PIT Parquet 儲存層（假日感知 actionable_ts）
+└── build_stock_dict.py                 # 個股字典維護（--full-tw 全市場 ~1,800 檔）
+
+skills/stock-heat-model/scripts/         # 熱度模型（消費 get-stock-NEWS 產出，非搜集層）
+├── extract_target_price.py             # 券商目標價/EPS 訊號抽取（Factset + 一般新聞 regex）
+├── quick_heat.py                       # v1 簡化版熱度（sanity check）
+└── test_heat.py                        # 上述離線測試
 ```
 
 ## 安裝與使用
@@ -40,6 +56,12 @@ PYTHONUTF8=1 python scripts/main.py
 # 指定日期
 PYTHONUTF8=1 python scripts/fetch_by_date.py 2026-05-13
 
+# 盤中監看（事件串流寫入 data/stream/，供下游推播/大腦 skill 讀取）
+PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only --log-file data/state/watch.log
+
+# 日終 ETL：raw + stream -> processed Parquet
+PYTHONUTF8=1 python scripts/process_day.py
+
 # 5 個月歷史背景抓取
 nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
 ```
@@ -52,7 +74,10 @@ nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
 
 ```
 抓取層 → PIT 儲存層 → 後處理 → 量化層
-cnyes/UDN/ctee  →  Parquet  →  個股辨識  →  熱度 + Tier
+多媒體/官方公告 → process_day → Parquet（假日感知 PIT）→ 個股辨識 → 熱度 + Tier
+
+盤中即時通道（低延遲，不走 Parquet）：
+輪詢 → 去重 → 個股比對 → data/stream/*.jsonl → 下游 skill（資訊大腦 / 推播）
 ```
 
 ## 重要原則（三方專家共識）

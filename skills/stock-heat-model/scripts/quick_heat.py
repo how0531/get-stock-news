@@ -9,8 +9,9 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent
-RAW = ROOT / "data" / "raw" / "cnyes"
+# repo 根：本檔在 skills/stock-heat-model/scripts/ 下，往上三層
+ROOT = Path(__file__).resolve().parents[3]
+RAW = ROOT / "data" / "raw" / "cnyes"  # 消費 get-stock-NEWS 產出的 raw
 STOCKS_DIR = ROOT / "data" / "stocks"
 
 # 雜訊標題 prefix（不算熱度）

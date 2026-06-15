@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# PR 分支會同時觸發 push 與 pull_request，以 ref 分組並取消舊的 in-progress run，避免重複
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Compile all scripts
+        run: |
+          python -m compileall -q scripts
+          python -m compileall -q skills/stock-heat-model/scripts
+
+      - name: Run get-stock-NEWS offline test suite
+        working-directory: scripts
+        run: python -m pytest test_storage.py test_collect.py -q
+
+      - name: Run stock-heat-model offline test suite
+        working-directory: skills/stock-heat-model/scripts
+        run: python -m pytest test_heat.py -q

@@ -5,8 +5,12 @@ import time
 from typing import Iterable
 
 import feedparser
-import requests
 from bs4 import BeautifulSoup
+
+try:
+    from .common import extract_author_from_entry, request_get, to_taipei_iso
+except ImportError:
+    from common import extract_author_from_entry, request_get, to_taipei_iso
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
@@ -21,8 +25,7 @@ FEEDS = {
 
 def _parse_article(url: str) -> str:
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
+        resp = request_get(url, headers=HEADERS)
         soup = BeautifulSoup(resp.text, "lxml")
         body = soup.select_one("section.article-body__editor") or soup.select_one(
             "div#article_body"
@@ -35,25 +38,30 @@ def _parse_article(url: str) -> str:
 
 
 def fetch(
-    feeds: Iterable[str] | None = None, limit_per_feed: int = 10, fetch_body: bool = False
+    feeds: Iterable[str] | None = None, limit_per_feed: int = 10, fetch_content: bool = False
 ) -> list[dict]:
-    """抓取 UDN 經濟日報新聞。"""
+    """抓取 UDN 經濟日報新聞。fetch_content=True 時逐篇進內頁抽全文。"""
     chosen = {k: FEEDS[k] for k in feeds} if feeds else FEEDS
     out: list[dict] = []
     for name, url in chosen.items():
         try:
-            feed = feedparser.parse(url)
+            resp = request_get(url, headers=HEADERS)
+            feed = feedparser.parse(resp.content)
             for entry in feed.entries[:limit_per_feed]:
                 item = {
                     "source": "udn",
                     "category": name,
                     "title": entry.get("title"),
+                    "author": extract_author_from_entry(entry),
                     "summary": entry.get("summary", ""),
+                    "content": "",
                     "url": entry.get("link"),
-                    "published_at": entry.get("published", ""),
+                    "published_at": to_taipei_iso(
+                        entry.get("published") or entry.get("updated")
+                    ),
                 }
-                if fetch_body:
-                    item["body"] = _parse_article(entry.link)
+                if fetch_content:
+                    item["content"] = _parse_article(entry.link)
                     time.sleep(1)
                 out.append(item)
         except Exception as e:

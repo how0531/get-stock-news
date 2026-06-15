@@ -15,11 +15,18 @@ A skill for **scoring, ranking, and validating** stock heat from aggregated news
 |----------|--------------|
 | 熱度公式（v2） | ❌ 新聞抓取（→ `get-stock-NEWS`） |
 | 投顧專欄識別與權重 | ❌ 原始資料儲存 |
-| 異常熱度偵測（z-score） | ❌ 目標價抽取 |
-| Tier 分級（S/A/W/X） | ❌ 字典維護 |
-| Veto 規則 | ❌ 來源新增 |
+| 異常熱度偵測（z-score） | ❌ 字典維護 |
+| 目標價訊號抽取（Factset / 一般新聞 regex） | ❌ 來源新增 |
+| Tier 分級（S/A/W/X） | |
+| Veto 規則 | |
 | 事後驗證（T+1/T+5/T+20） | |
 | 籌碼面整合 | |
+
+本 skill 的腳本放在 `skills/stock-heat-model/scripts/`（消費 get-stock-NEWS 產出的
+`data/raw` / `data/processed` / `data/stocks`，輸出 `data/target_price` 等）：
+- `extract_target_price.py` — 券商目標價/EPS 訊號抽取（Factset 速報 + 一般新聞 regex），輸出 `data/target_price/YYYY-MM-DD.json`
+- `quick_heat.py` — v1 簡化熱度（標題×2＋摘要×1＋雜訊過濾），sanity check 用，v2 完整公式待實作
+- `test_heat.py` — 上述兩支的離線測試（CI 獨立跑）
 
 ---
 
@@ -274,7 +281,7 @@ TP 動能 = 過去 7/30 天 change_pct 加權平均
 | 階段 | 內容 | 狀態 |
 |------|------|------|
 | ✅ 個股字典 | 364 檔 + 別名 | 完成 |
-| 🟡 v1 簡化熱度 | `quick_heat.py`（標題×2+摘要×1） | 有 bug 修中 |
+| 🟡 v1 簡化熱度 | `scripts/quick_heat.py`（標題×2+摘要×1） | 可用，已補離線測試（test_heat.py） |
 | ⏳ 多 ticker canonical 合併 | 2330.TW + 2330.TWO + TSM → 同一檔 | 待做 |
 | ⏳ 投顧專欄識別 | URL pattern + 作者抽取 | 待做 |
 | ⏳ v2 完整熱度 | log1p + z-score + 5 日加速度 | 累積 1 個月資料後 |
