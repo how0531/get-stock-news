@@ -66,8 +66,9 @@ A skill for **fetching and storing** Taiwan/US/Japan financial news. Aggregation
 | PTT Stock / Dcard 股板 | 散戶情緒（反向指標候選） | 非媒體，雜訊極高，另案處理 |
 
 **轉載去重提醒**：中央社的稿常被 Yahoo、自由、ETtoday 轉載，同事件多 URL，Yahoo 亦常改寫標題後引用其他來源全文。`process_day` 做**兩層去重**：
-- **Tier 1（標題完全相同）**：`common.norm_title` 正規化後完全相同視為同文，watch_intraday / main / process_day 皆套用，保留最早 `publish_ts` 一筆。
-- **Tier 2（標題改寫但全文相同）**：`process_day._merge_reprints` 取 `content`/`summary` 正規化後前 60 字作指紋，指紋相同且 `publish_ts` 在 48 小時內視為同一事件轉載，保留最早一筆，其餘來源記於新欄位 `also_reported_by`（如 `["yahoo_stock"]`）。指紋需 ≥60 字正規化文字才生效，故仰賴 `content`/`summary` 有足夠長度（建議開 `fetch_content`）。
+- **Tier 1（標題完全相同）**：`common.norm_title` 正規化後完全相同視為同文，watch_intraday / main / process_day 皆套用，保留最早 `publish_ts` 一筆；在 `process_day._merge_exact_dupes` 中，被併掉的來源亦記入 `also_reported_by`。
+- **Tier 2（標題改寫但全文相同）**：`process_day._merge_reprints` 取 `content`/`summary` 正規化後前 60 字作指紋，指紋相同且 `publish_ts` 在 48 小時內視為同一事件轉載，保留最早一筆。指紋需 ≥60 字正規化文字才生效，故仰賴 `content`/`summary` 有足夠長度（建議開 `fetch_content`）。
+- 兩層併掉的來源最終彙整於 `also_reported_by`（取聯集，如 `["udn", "yahoo_stock"]`），供下游 cross_media 因子使用。
 
 「標題相似但不相同、內文亦非逐字轉載」的語意聚合（如各家獨立撰寫同事件報導）仍屬下游語意聚合範疇（已列入 stock-heat-model 待辦）。
 

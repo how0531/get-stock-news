@@ -4,7 +4,8 @@
   - 來源：data/raw/{source}/{date}.json（main.py / backfill 寫入）
           data/stream/{date}.jsonl（watch_intraday 寫入）
   - 輸出：data/processed/date={date}/data.parquet（PIT 三時間戳齊備）
-  - 去重：同文轉載以「標題正規化」聚合，保留最早 publish_ts 的一筆
+  - 去重：兩層——Tier 1 標題正規化相同、Tier 2 內文指紋相同的改寫轉載，
+          皆保留最早 publish_ts 一筆，被併來源彙整於 also_reported_by
 
 用法：
   python scripts/process_day.py              # 處理今天（台北時間）
@@ -64,16 +65,33 @@ def _content_fingerprint(text: str) -> str:
     return norm[:FINGERPRINT_LEN] if len(norm) >= FINGERPRINT_LEN else ""
 
 
+def _merge_exact_dupes(groups: list[list[dict]]) -> list[dict]:
+    """Tier 1 去重：標題正規化後完全相同者保留最早 publish 一筆。
+
+    其餘來源記於 also_reported_by（與 Tier 2 共用欄位，_merge_reprints 會再合併）。
+    """
+    out: list[dict] = []
+    for group in groups:
+        group.sort(key=lambda r: r["publish_ts"] or datetime.max)
+        primary, *dups = group
+        # 排除主筆自身來源（同來源同標題重抓不算「其他來源也報」）
+        primary["also_reported_by"] = sorted(
+            {d["source"] for d in dups if d["source"]} - {primary["source"]}
+        )
+        out.append(primary)
+    return out
+
+
 def _merge_reprints(records: list[dict]) -> list[dict]:
     """Tier 2 去重：依內文指紋合併「標題改寫但全文相同」的轉載（如 yahoo 引用其他來源全文）。
 
     同指紋且 publish_ts 落在 DEDUP_WINDOW 內者視為同一事件，保留最早一筆，
-    其餘來源記於 also_reported_by；指紋不同、無指紋或超出時間窗者各自保留。
+    其餘來源（含其 Tier 1 也帶來的 also_reported_by）併入 also_reported_by；
+    指紋不同、無指紋或超出時間窗者各自保留。
     """
     groups: dict[str, list[dict]] = {}
     out: list[dict] = []
     for rec in records:
-        rec.setdefault("also_reported_by", [])
         fp = _content_fingerprint(rec["content"] or rec["summary"])
         if fp:
             groups.setdefault(fp, []).append(rec)
@@ -93,7 +111,12 @@ def _merge_reprints(records: list[dict]) -> list[dict]:
             else:
                 clusters.append([rec])
         for primary, *dups in clusters:
-            primary["also_reported_by"] = sorted({d["source"] for d in dups if d["source"]})
+            extra = {d["source"] for d in dups if d["source"]}
+            for d in dups:
+                extra.update(d["also_reported_by"])
+            primary["also_reported_by"] = sorted(
+                (set(primary["also_reported_by"]) | extra) - {primary["source"]}
+            )
             out.append(primary)
 
     return out
@@ -127,7 +150,7 @@ def build_records(
     if alias_index is None:
         alias_index = load_alias_index()
 
-    by_title: dict[str, dict] = {}
+    by_title: dict[str, list[dict]] = {}
     for item in items:
         title = item.get("title") or ""
         if not title:
@@ -166,17 +189,10 @@ def build_records(
             "tags": tags,
         }
 
-        # 同文轉載：保留最早 publish 的一筆（無 publish 的視為最晚）
-        prev = by_title.get(tkey)
-        if prev is None:
-            by_title[tkey] = rec
-        else:
-            prev_pub = prev["publish_ts"] or datetime.max
-            cur_pub = publish or datetime.max
-            if cur_pub < prev_pub:
-                by_title[tkey] = rec
+        by_title.setdefault(tkey, []).append(rec)
 
-    df = pd.DataFrame(_merge_reprints(list(by_title.values())))
+    primaries = _merge_exact_dupes(list(by_title.values()))
+    df = pd.DataFrame(_merge_reprints(primaries))
     if df.empty:
         return pd.DataFrame(columns=storage.PROCESSED_REQUIRED)
     for col in ("publish_ts", "ingestion_ts", "actionable_ts"):

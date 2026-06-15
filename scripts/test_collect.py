@@ -198,6 +198,8 @@ def test_build_records_dedupe_and_pit():
     # author/content 透傳至 processed
     assert row_news["author"] == "鉅亨網記者"
     assert row_news["content"] == "台積電今日召開法說會……"
+    # Tier 1 去重：同標題轉載的 yahoo_stock 記入 also_reported_by
+    assert row_news["also_reported_by"] == ["yahoo_stock"]
     # 盤中發布 -> 當日 13:30 可行動
     assert row_news["actionable_ts"] == pd.Timestamp(2026, 6, 12, 13, 30)
 
@@ -356,6 +358,62 @@ def test_build_records_tier2_dedup_outside_window_not_merged():
     )
     assert len(df) == 2
     assert (df["also_reported_by"].apply(len) == 0).all()
+
+
+def test_build_records_tier1_dedup_populates_also_reported_by():
+    """Tier 1（標題正規化相同）去重也要把其他來源記入 also_reported_by。"""
+    items = [
+        {  # 原始報導，發布較早 -> 留存
+            "source": "cnyes", "category": "台股",
+            "title": "台積電法說會展望樂觀", "content": "短內文", "summary": "",
+            "url": "https://cnyes/1", "published_at": "2026-06-12T10:00:00+08:00",
+        },
+        {  # 同標題（差一個驚嘆號，正規化後相同）轉載，發布較晚 -> 併入主筆
+            "source": "yahoo_stock", "category": "台股",
+            "title": "台積電法說會展望樂觀！", "content": "短內文", "summary": "",
+            "url": "https://yahoo/2", "published_at": "2026-06-12T11:00:00+08:00",
+        },
+    ]
+    df = process_day.build_records(
+        items, default_ingestion=datetime(2026, 6, 12, 12, 0), alias_index=[]
+    )
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["source"] == "cnyes"  # 較早發布者為主
+    assert row["also_reported_by"] == ["yahoo_stock"]
+
+
+def test_build_records_tier1_and_tier2_also_reported_by_union():
+    """Tier 1 與 Tier 2 同時命中時，also_reported_by 取聯集（含 Tier 1 帶上來的來源）。"""
+    items = [
+        {  # 原始報導
+            "source": "cnyes", "category": "台股",
+            "title": "原始標題", "content": _LONG_CONTENT, "summary": "",
+            "url": "https://cnyes/1", "published_at": "2026-06-12T10:00:00+08:00",
+        },
+        {  # 與 cnyes 同標題 -> Tier 1 併入
+            "source": "yahoo_stock", "category": "台股",
+            "title": "原始標題！", "content": "短", "summary": "",
+            "url": "https://yahoo/2", "published_at": "2026-06-12T10:15:00+08:00",
+        },
+        {  # 標題改寫但同內文 -> Tier 2 併入
+            "source": "udn", "category": "財經",
+            "title": "改寫後的標題", "content": _LONG_CONTENT, "summary": "",
+            "url": "https://udn/3", "published_at": "2026-06-12T10:30:00+08:00",
+        },
+        {  # 與 udn 同標題 -> 先 Tier 1 併入 udn，再隨 udn 經 Tier 2 傳遞上來
+            "source": "ettoday", "category": "財經",
+            "title": "改寫後的標題！", "content": "短2", "summary": "",
+            "url": "https://ettoday/4", "published_at": "2026-06-12T10:45:00+08:00",
+        },
+    ]
+    df = process_day.build_records(
+        items, default_ingestion=datetime(2026, 6, 12, 12, 0), alias_index=[]
+    )
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["source"] == "cnyes"  # 全部合併到最早發布者
+    assert row["also_reported_by"] == ["ettoday", "udn", "yahoo_stock"]
 
 
 def test_build_records_clock_skew_clamp():
