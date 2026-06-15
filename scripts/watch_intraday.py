@@ -231,6 +231,8 @@ def main() -> None:
             log(f"[watch] {datetime.now(TAIPEI):%H:%M} 非盤中時段，待命中...")
         else:
             n = poll_once(sources, seen, alias_index)
+            # 記憶體去重表與磁碟同步維持上限，長時運行（--interval）才不會無上限成長
+            del seen[:-SEEN_CAP]
             save_seen(seen)
             log(f"[watch] {datetime.now(TAIPEI):%H:%M:%S} 本輪新增 {n} 則")
         if args.once:
