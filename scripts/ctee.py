@@ -3,7 +3,7 @@
 工商無公開 RSS，WP REST API 亦已關閉（/wp-json 回 404，見 backfill_ctee.py），
 故走列表頁擷取文章 URL。發布日期可直接從 URL 內嵌的 8 碼取得
 （/news/{YYYYMMDD}{6}-{6}），免額外請求即可得到日粒度 publish_ts；
-需要精確到分秒時，fetch_detail=True 會再抓文章頁的 <meta pubdate>
+需要全文/精確時間時，fetch_content=True 會再抓文章頁取內文與 <meta pubdate>
 （每篇一次請求，預設關閉以保持禮貌）。
 
 文章解析重用 backfill_ctee 的 parse_article / _publish_str_to_iso，
@@ -86,9 +86,9 @@ def _parse_list(url: str, limit: int) -> list[dict]:
 def fetch(
     categories: Iterable[str] | None = None,
     limit_per_cat: int = 15,
-    fetch_detail: bool = False,
+    fetch_content: bool = False,
 ) -> list[dict]:
-    """抓取工商時報新聞列表。publish_ts 來自 URL 日期；fetch_detail 取精確時間。"""
+    """抓取工商時報新聞列表。publish_ts 來自 URL 日期；fetch_content 取全文與精確時間。"""
     chosen = {k: CATEGORIES[k] for k in categories} if categories else CATEGORIES
     out: list[dict] = []
     for name, url in chosen.items():
@@ -96,7 +96,7 @@ def fetch(
             for item in _parse_list(url, limit_per_cat):
                 pub = _url_date_iso(item["url"])
                 author = summary = content = ""
-                if fetch_detail:
+                if fetch_content:
                     det = _detail_fields(item["url"])
                     if det["publish"]:
                         pub = det["publish"]

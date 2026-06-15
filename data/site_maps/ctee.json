@@ -94,7 +94,7 @@
   ],
   "noise_notes": "房市、兩岸、生活/樂活、書房等頻道股市相關性低，預設排除。言論/名家為混合內容，需文章層面判斷主題；即時總覽 /livenews/ctee 為混流入口，須依文章證券/產業子分類（URL 尾碼如 4302xx 為證券）過濾。WP REST API 全站 404 不可用，僅能靠列表頁 HTML 與 sitemap。",
   "cleaning": {
-    "publish_ts": "URL 內嵌 8 碼日期 -> 台北時間日粒度；需精確到分秒時 fetch_detail=True 抓文章頁 <meta pubdate>",
+    "publish_ts": "URL 內嵌 8 碼日期 -> 台北時間日粒度；需精確到分秒時 fetch_content=True 抓文章頁 <meta pubdate>",
     "dedup": "norm_title 跨源去重"
   },
   "researched_via": "websearch",

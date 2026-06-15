@@ -19,16 +19,19 @@ except ImportError:  # 直接以 python scripts/main.py 執行
     import storage
 
 
-def aggregate() -> list[dict]:
+def aggregate(fetch_content: bool = True) -> list[dict]:
+    """彙整各來源最新新聞。fetch_content=True（預設）逐篇進內頁補全文；
+    日終批次跑一次、延遲不敏感，故預設抓全文，--no-content 可關閉。
+    cnyes（API 內含全文）與重大訊息（說明即全文）本就帶 content。"""
     news: list[dict] = []
     print("[cnyes] 抓取中...")
     news.extend(fetch_cnyes(limit=15))
     print("[udn] 抓取中...")
-    news.extend(fetch_udn(limit_per_feed=10))
+    news.extend(fetch_udn(limit_per_feed=10, fetch_content=fetch_content))
     print("[ctee] 抓取中...")
-    news.extend(fetch_ctee(limit_per_cat=10))
+    news.extend(fetch_ctee(limit_per_cat=10, fetch_content=fetch_content))
     print("[rss] 中央社/自由/科技新報/ETtoday/中時/MoneyDJ/Yahoo股市 抓取中...")
-    news.extend(fetch_rss(limit_per_feed=10))
+    news.extend(fetch_rss(limit_per_feed=10, fetch_content=fetch_content))
 
     # 以 url + 正規化標題去重（跨來源轉載 URL 不同、標題相同）
     seen: set[str] = set()
@@ -46,7 +49,14 @@ def aggregate() -> list[dict]:
 
 
 if __name__ == "__main__":
-    items = aggregate()
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Finance-NEWS 統一彙整入口")
+    ap.add_argument("--no-content", action="store_true",
+                    help="不進內頁抓全文（較快，僅留標題/摘要）")
+    args = ap.parse_args()
+
+    items = aggregate(fetch_content=not args.no_content)
     print(f"\n總共 {len(items)} 則新聞")
 
     # 依來源寫入 raw 層，供日終 process_day.py 轉 processed parquet

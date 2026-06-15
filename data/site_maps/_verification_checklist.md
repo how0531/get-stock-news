@@ -33,7 +33,7 @@ python scripts/healthcheck.py cnyes udn  # 只探指定來源
 
 ## 2. body_selectors 內文抽取準確度（全 RSS/HTML 來源）
 
-`fetch_content=True` / `fetch_detail=True` 時用 `SOURCES[sid]['body_selectors']` 抽全文。
+`fetch_content=True` 時用 `SOURCES[sid]['body_selectors']` 抽全文。
 研究自公開爬蟲，**信心不一**，需抓 2-3 篇真實文章肉眼比對抽出的內文是否完整、無導航/廣告殘留。
 
 | 來源 | 首選 selector | 信心 | 驗證重點 |
@@ -78,7 +78,7 @@ python scripts/healthcheck.py cnyes udn  # 只探指定來源
 ## 7. 時間欄位與 PIT（全來源）
 
 抽樣比對每來源 `publish_ts` 是否為正確的**官方發布時間**（非抓取時間、非列表頁粗略日期）：
-- ctee 列表頁僅日粒度，須 `fetch_detail` 取內頁精確時間——確認 `_detail_fields` 解析到時分秒。
+- ctee 列表頁僅日粒度，須 `fetch_content` 取內頁精確時間——確認 `_detail_fields` 解析到時分秒。
 - cnyes API 時間戳為 epoch，確認時區換算 Asia/Taipei 正確。
 - 確認 `actionable_ts` 假日感知對近期實際假日（看 `data/calendar/tw_holidays.json`）落點正確。
 

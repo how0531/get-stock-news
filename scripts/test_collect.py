@@ -1,15 +1,20 @@
 """搜集層純邏輯測試 — common / twse_announce / watch_intraday / process_day / 假日 PIT。"""
 from __future__ import annotations
 
+import inspect
+import types
 from datetime import datetime
 
 import pandas as pd
 
 import common
+import ctee
 import healthcheck
 import process_day
+import rss_sources
 import site_map
 import storage
+import udn
 import watch_intraday
 from ctee import _url_date_iso
 from rss_sources import SOURCES as RSS_SOURCES_KEYS
@@ -427,3 +432,86 @@ def test_build_records_clock_skew_clamp():
         items, default_ingestion=datetime(2026, 6, 12, 9, 59), alias_index=[]
     )
     assert df.iloc[0]["ingestion_ts"] == pd.Timestamp(2026, 6, 12, 10, 0)
+
+
+# --------------------------------------------------------------------------- #
+# 內文全文抓取（統一 fetch_content 旗標）
+# --------------------------------------------------------------------------- #
+
+def test_collectors_share_unified_fetch_content_flag():
+    """udn / ctee / rss 三個收集器統一以 fetch_content 控制是否抓全文。"""
+    for fn in (udn.fetch, ctee.fetch, rss_sources.fetch, rss_sources.fetch_source):
+        assert "fetch_content" in inspect.signature(fn).parameters, fn.__name__
+    # 舊的不一致參數名已移除
+    assert "fetch_body" not in inspect.signature(udn.fetch).parameters
+    assert "fetch_detail" not in inspect.signature(ctee.fetch).parameters
+
+
+def test_rss_fetch_source_fetches_full_content_when_flag_on(monkeypatch):
+    """fetch_content=True 時逐篇進內頁抽全文，並沿用該來源的 body_selectors。"""
+    entry = {"link": "https://cna/1", "title": "中央社頭條", "summary": "RSS 摘要"}
+    monkeypatch.setattr(rss_sources, "request_get",
+                        lambda *a, **k: types.SimpleNamespace(content=b""))
+    monkeypatch.setattr(rss_sources.feedparser, "parse",
+                        lambda *a, **k: types.SimpleNamespace(entries=[entry], bozo=0))
+    monkeypatch.setattr(rss_sources.time, "sleep", lambda *a, **k: None)
+
+    calls: list = []
+
+    def fake_fetch_article(url, body_selectors=None):
+        calls.append((url, body_selectors))
+        return {"author": "記者A", "summary": "內頁摘要", "content": "完整內文全文"}
+
+    monkeypatch.setattr(rss_sources, "fetch_article", fake_fetch_article)
+    on = rss_sources.fetch_source("cna", limit_per_feed=1, fetch_content=True)
+    assert on[0]["content"] == "完整內文全文"
+    assert calls and calls[0][1] == rss_sources.SOURCES["cna"]["body_selectors"]
+
+    # flag off：不進內頁、content 留空、fetch_article 不被呼叫
+    def boom(*a, **k):
+        raise AssertionError("fetch_content=False 不應抓內頁")
+
+    monkeypatch.setattr(rss_sources, "fetch_article", boom)
+    off = rss_sources.fetch_source("cna", limit_per_feed=1, fetch_content=False)
+    assert off[0]["content"] == ""
+
+
+def test_watch_enrich_content_uses_source_selectors(monkeypatch):
+    """盤中監看補抓全文時，沿用該 RSS 來源的 body_selectors，並回填 summary/author。"""
+    captured: dict = {}
+
+    def fake_fetch_article(url, body_selectors=None):
+        captured["url"] = url
+        captured["selectors"] = body_selectors
+        return {"author": "記者B", "summary": "補摘要", "content": "補全文"}
+
+    monkeypatch.setattr(watch_intraday, "fetch_article", fake_fetch_article)
+    monkeypatch.setattr(watch_intraday.time_mod, "sleep", lambda *a, **k: None)
+    item = {"source": "cna", "url": "https://cna/9", "title": "標題",
+            "content": "", "summary": "", "author": ""}
+    watch_intraday.enrich_content(item)
+    assert item["content"] == "補全文"
+    assert item["summary"] == "補摘要"
+    assert captured["selectors"] == watch_intraday.RSS_SOURCES["cna"]["body_selectors"]
+
+
+def test_watch_enrich_skips_when_content_already_present(monkeypatch):
+    """cnyes/announce 等已含全文者不應再進內頁抓取。"""
+    def boom(*a, **k):
+        raise AssertionError("已有 content 不應再抓內頁")
+
+    monkeypatch.setattr(watch_intraday, "fetch_article", boom)
+    item = {"source": "cnyes", "url": "u", "title": "T", "content": "API 已含全文"}
+    watch_intraday.enrich_content(item)  # 不應拋例外
+    assert item["content"] == "API 已含全文"
+
+
+def test_watch_enrich_skips_unknown_source(monkeypatch):
+    """非 RSS 來源（無 body_selectors）不抓內頁，content 留空。"""
+    def boom(*a, **k):
+        raise AssertionError("非 RSS 來源不應抓內頁")
+
+    monkeypatch.setattr(watch_intraday, "fetch_article", boom)
+    item = {"source": "announce_twse", "url": "u", "title": "T", "content": ""}
+    watch_intraday.enrich_content(item)
+    assert item["content"] == ""

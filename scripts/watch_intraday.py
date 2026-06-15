@@ -18,12 +18,12 @@ from datetime import datetime, time
 from pathlib import Path
 
 try:
-    from .common import TAIPEI, norm_title
+    from .common import TAIPEI, fetch_article, norm_title
     from .cnyes import fetch as fetch_cnyes
     from .rss_sources import SOURCES as RSS_SOURCES, fetch_source as fetch_rss
     from .twse_announce import fetch as fetch_announce
 except ImportError:  # 直接以 python scripts/watch_intraday.py 執行
-    from common import TAIPEI, norm_title
+    from common import TAIPEI, fetch_article, norm_title
     from cnyes import fetch as fetch_cnyes
     from rss_sources import SOURCES as RSS_SOURCES, fetch_source as fetch_rss
     from twse_announce import fetch as fetch_announce
@@ -134,10 +134,33 @@ def poll_sources(sources: list[str]) -> list[dict]:
     return items
 
 
+def enrich_content(item: dict) -> None:
+    """就地補抓 RSS 來源新項目的內頁全文（cnyes/announce 已含全文者略過）。
+
+    僅對通過去重的新項目呼叫，避免每輪對同一批列表重複抓內頁而被擋。
+    內文容器選擇器取自 RSS_SOURCES[sid]['body_selectors']。
+    """
+    if item.get("content"):
+        return
+    conf = RSS_SOURCES.get(item.get("source", ""))
+    url = item.get("url")
+    if not conf or not url:
+        return
+    art = fetch_article(url, body_selectors=conf.get("body_selectors"))
+    if art["content"]:
+        item["content"] = art["content"]
+    if not item.get("summary"):
+        item["summary"] = art["summary"]
+    if not item.get("author"):
+        item["author"] = art["author"]
+    time_mod.sleep(1)  # 禮貌性間隔，避免內頁抓取過快被擋
+
+
 def poll_once(
     sources: list[str],
     seen: list[str],
     alias_index: list[tuple[str, str]],
+    fetch_content: bool = True,
 ) -> int:
     seen_set = set(seen)
     new_count = 0
@@ -152,6 +175,9 @@ def poll_once(
         seen_set.update(keys)
         seen.extend(keys)
         new_count += 1
+
+        if fetch_content:
+            enrich_content(item)
 
         tags = classify(item["title"])
         text = f"{item.get('title', '')} {item.get('summary', '')}"
@@ -212,6 +238,8 @@ def main() -> None:
     ap.add_argument("--once", action="store_true", help="只輪詢一次後結束（測試用）")
     ap.add_argument("--market-hours-only", action="store_true",
                     help="僅在台股盤中時段（08:30-13:45）輪詢")
+    ap.add_argument("--no-content", action="store_true",
+                    help="新項目不進內頁補抓全文（較快、較不易被擋）")
     ap.add_argument("--log-file", default=None,
                     help="同步寫入 log 檔（長時運行建議開啟，例如 data/state/watch.log）")
     args = ap.parse_args()
@@ -225,12 +253,13 @@ def main() -> None:
     alias_index = load_alias_index()
     seen = load_seen()
 
-    log(f"[watch] 來源: {sources}，間隔 {args.interval}s，字典 {len(alias_index)} 別名")
+    log(f"[watch] 來源: {sources}，間隔 {args.interval}s，字典 {len(alias_index)} 別名，"
+        f"全文補抓: {'關' if args.no_content else '開'}")
     while True:
         if args.market_hours_only and not in_market_hours():
             log(f"[watch] {datetime.now(TAIPEI):%H:%M} 非盤中時段，待命中...")
         else:
-            n = poll_once(sources, seen, alias_index)
+            n = poll_once(sources, seen, alias_index, fetch_content=not args.no_content)
             # 記憶體去重表與磁碟同步維持上限，長時運行（--interval）才不會無上限成長
             del seen[:-SEEN_CAP]
             save_seen(seen)

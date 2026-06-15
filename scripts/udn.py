@@ -38,9 +38,9 @@ def _parse_article(url: str) -> str:
 
 
 def fetch(
-    feeds: Iterable[str] | None = None, limit_per_feed: int = 10, fetch_body: bool = False
+    feeds: Iterable[str] | None = None, limit_per_feed: int = 10, fetch_content: bool = False
 ) -> list[dict]:
-    """抓取 UDN 經濟日報新聞。"""
+    """抓取 UDN 經濟日報新聞。fetch_content=True 時逐篇進內頁抽全文。"""
     chosen = {k: FEEDS[k] for k in feeds} if feeds else FEEDS
     out: list[dict] = []
     for name, url in chosen.items():
@@ -60,7 +60,7 @@ def fetch(
                         entry.get("published") or entry.get("updated")
                     ),
                 }
-                if fetch_body:
+                if fetch_content:
                     item["content"] = _parse_article(entry.link)
                     time.sleep(1)
                 out.append(item)
