@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>永豐金課程平台合作提案</title>
+<style>
+  :root{
+    --bg:#F5F3EE; --surface:#FFFFFF; --ink:#12312C; --sub:#556661;
+    --accent:#127A6B; --accent-soft:#E1F0EC; --deep:#0F3B36;
+    --gold:#B0812B; --gold-soft:#F5ECD8;
+    --line:#DDD9CF; --chip:#EBE8E0;
+    --serif:"Noto Serif TC","Songti TC",PMingLiU,Georgia,serif;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0E1917; --surface:#16241F; --ink:#E9EFEC; --sub:#93A8A1;
+      --accent:#3FB6A2; --accent-soft:#16302A; --deep:#0B1614;
+      --gold:#D6A94E; --gold-soft:#2E2712;
+      --line:#26362F; --chip:#1E2E28;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1917; --surface:#16241F; --ink:#E9EFEC; --sub:#93A8A1;
+    --accent:#3FB6A2; --accent-soft:#16302A; --deep:#0B1614;
+    --gold:#D6A94E; --gold-soft:#2E2712;
+    --line:#26362F; --chip:#1E2E28;
+  }
+  :root[data-theme="light"]{
+    --bg:#F5F3EE; --surface:#FFFFFF; --ink:#12312C; --sub:#556661;
+    --accent:#127A6B; --accent-soft:#E1F0EC; --deep:#0F3B36;
+    --gold:#B0812B; --gold-soft:#F5ECD8;
+    --line:#DDD9CF; --chip:#EBE8E0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+
+  .deck{position:relative;height:100vh;width:100vw}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;
+    padding:clamp(24px,5vh,52px) clamp(26px,7vw,104px);overflow-y:auto}
+  .slide.active{display:flex}
+  @media (prefers-reduced-motion: no-preference){
+    .slide.active{animation:fadein .3s ease}
+    @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  }
+
+  .eyebrow{font-size:clamp(11px,1.5vh,13px);letter-spacing:.2em;color:var(--gold);
+    font-weight:700;margin-bottom:1.3vh;text-transform:uppercase}
+  h1{font-family:var(--serif);font-weight:900;font-size:clamp(30px,6.2vh,58px);
+    line-height:1.24;margin:0 0 1.8vh;text-wrap:balance}
+  h2{font-family:var(--serif);font-weight:900;font-size:clamp(23px,4.5vh,40px);
+    line-height:1.32;margin:0 0 2.2vh;text-wrap:balance}
+  .hl{color:var(--accent)}
+  .hl-g{color:var(--gold)}
+  p.lede{font-size:clamp(15px,2.4vh,19px);color:var(--sub);line-height:1.85;max-width:34em;margin:0 0 1.6vh}
+  .grow{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
+
+  .cards{display:grid;gap:clamp(10px,1.8vh,18px)}
+  .cards.c2{grid-template-columns:1fr 1fr}
+  .cards.c3{grid-template-columns:1fr 1fr 1fr}
+  .cards.c4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:820px){.cards.c2,.cards.c3,.cards.c4{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:clamp(13px,2.4vh,22px) clamp(14px,1.8vw,22px)}
+  .card h3{margin:0 0 .8vh;font-size:clamp(14.5px,2.2vh,17.5px);font-weight:700}
+  .card p{margin:0;font-size:clamp(12.5px,1.9vh,14.5px);color:var(--sub);line-height:1.78}
+  .card .n{font-family:var(--serif);font-weight:900;color:var(--accent);
+    font-size:clamp(15px,2.3vh,18px);margin-right:.4em}
+  .tag{display:inline-block;font-size:clamp(10.5px,1.5vh,12px);font-weight:700;border-radius:4px;
+    padding:2px 9px;margin-bottom:1vh;letter-spacing:.06em}
+  .tag.t{color:var(--accent);background:var(--accent-soft)}
+  .tag.g{color:var(--gold);background:var(--gold-soft)}
+
+  ul.tick{list-style:none;padding:0;margin:0;font-size:clamp(13px,2.05vh,15.5px);line-height:1.8}
+  ul.tick li{padding:.85vh 0 .85vh 1.7em;position:relative;border-bottom:1px dashed var(--line)}
+  ul.tick li:last-child{border-bottom:none}
+  ul.tick li::before{content:"▸";position:absolute;left:0;color:var(--gold);font-weight:700}
+  ul.tick.chk li::before{content:"✓";color:var(--accent)}
+  ul.tick b{font-weight:700}
+  ul.tick .sub{color:var(--sub)}
+
+  table{width:100%;border-collapse:collapse;font-size:clamp(12.5px,1.95vh,15px)}
+  th{font-size:clamp(10.5px,1.5vh,12.5px);letter-spacing:.08em;color:var(--sub);text-align:left;
+    font-weight:700;padding:.9vh 12px;border-bottom:2px solid var(--deep)}
+  td{padding:1vh 12px;border-bottom:1px solid var(--line);line-height:1.6;vertical-align:top}
+  td.num{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:.95em}
+  tr.emph td{background:var(--accent-soft)}
+  .tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;padding:clamp(8px,1.4vh,16px) clamp(10px,1.2vw,18px)}
+
+  .big{font-family:var(--serif);font-weight:900;font-size:clamp(26px,4.6vh,44px);
+    color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.05}
+  .big small{font-size:.4em;color:var(--sub);font-family:var(--sans);font-weight:400}
+
+  .term{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    border-top:3px solid var(--gold);padding:clamp(13px,2.3vh,20px) 18px}
+  .term .k{font-size:clamp(11px,1.6vh,13px);color:var(--gold);font-weight:700;letter-spacing:.06em}
+  .term .v{font-family:var(--serif);font-weight:900;font-size:clamp(20px,3.4vh,30px);margin:.5vh 0}
+  .term p{margin:0;font-size:clamp(12px,1.75vh,13.5px);color:var(--sub);line-height:1.7}
+
+  .demo{background:var(--deep);border-radius:8px;padding:clamp(14px,2.4vh,22px) clamp(16px,2vw,24px);
+    font-family:var(--mono);font-size:clamp(11px,1.7vh,13.5px);line-height:1.75;color:#DCE8E4;
+    overflow-x:auto}
+  .demo .up{color:#5FD0AE} .demo .dn{color:#E88A6F} .demo .dim{color:#7C9188}
+  .demo .hd{color:var(--gold);font-weight:700}
+
+  .quote{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--gold);
+    border-radius:0 8px 8px 0;padding:clamp(16px,3vh,28px) clamp(18px,2.4vw,30px);max-width:40em}
+  .quote p{margin:0;font-family:var(--serif);font-weight:700;font-size:clamp(17px,3vh,25px);line-height:1.7}
+  .quote .by{margin-top:1.2vh;font-family:var(--sans);font-weight:400;font-size:clamp(12px,1.8vh,14px);color:var(--sub)}
+
+  .footer-note{margin-top:2vh;font-size:clamp(11px,1.65vh,12.5px);color:var(--sub);line-height:1.7}
+
+  .cover{justify-content:center;position:relative}
+  .cover::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--gold)}
+  .cover .brand{font-family:var(--mono);color:var(--accent);font-size:clamp(12px,1.8vh,14px);
+    letter-spacing:.14em;margin-bottom:3vh}
+  .cover .sub{font-size:clamp(15px,2.6vh,21px);color:var(--sub);line-height:1.95;max-width:31em}
+  .cover .meta{margin-top:4.5vh;display:flex;gap:clamp(16px,3vw,44px);flex-wrap:wrap}
+  .cover .meta div{border-left:3px solid var(--accent);padding-left:14px}
+  .cover .meta .k{font-size:clamp(10.5px,1.5vh,12px);color:var(--sub);letter-spacing:.08em}
+  .cover .meta .v{font-size:clamp(14px,2.3vh,18px);font-weight:700}
+
+  .hud{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;
+    justify-content:space-between;padding:10px clamp(16px,3vw,40px);pointer-events:none;z-index:5}
+  .hud .count{font-family:var(--mono);font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+  .hud .btns{pointer-events:auto;display:flex;gap:8px}
+  .hud button{background:var(--surface);border:1px solid var(--line);color:var(--ink);
+    width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer}
+  .hud button:hover{border-color:var(--gold);color:var(--gold)}
+  .hud button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .bar{position:fixed;top:0;left:0;height:3px;background:var(--gold);width:0;z-index:6;transition:width .25s}
+  @media (prefers-reduced-motion: reduce){.bar{transition:none}}
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="deck">
+
+<!-- 1 封面 -->
+<section class="slide cover active">
+  <div class="brand">課程平台合作提案・COURSE PARTNERSHIP</div>
+  <h1>把「看懂新聞」<br>做成永豐金投資人的<br><span class="hl">日常能力</span></h1>
+  <p class="sub">一套已完成的財經資訊素養課程 ＋ 一個可運作的新聞多空監測工具，<br>為永豐金課程平台帶來安全、差異化、能沉澱用戶的投資教育內容。</p>
+  <div class="meta">
+    <div><div class="k">提案對象</div><div class="v">永豐金證券・課程/投資學習平台</div></div>
+    <div><div class="k">提案內容</div><div class="v">課程上架 × 工具整合 × 共同品牌</div></div>
+    <div><div class="k">交付狀態</div><div class="v">課程與工具皆已完成，可即刻上線</div></div>
+  </div>
+</section>
+
+<!-- 2 一頁摘要 -->
+<section class="slide">
+  <div class="eyebrow">Executive Summary</div>
+  <h2>一頁看懂這個提案</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">我們帶來什麼</span>
+      <ul class="tick chk">
+        <li><b>入門課</b>：散戶新聞實戰課，零程式門檻，適合平台廣大用戶</li>
+        <li><b>技術課</b>：Python 股市新聞情報系統，適合進階/工程背景用戶</li>
+        <li><b>監測工具</b>：新聞利多/利空自動判讀，可作教材，亦可整合 App</li>
+      </ul></div>
+    <div class="card"><span class="tag g">永豐金得到什麼</span>
+      <ul class="tick">
+        <li><b>用戶黏著</b>：從「開戶交易」延伸到「每天回來學習」</li>
+        <li><b>平台差異化</b>：別家券商沒有的「新聞判讀能力」內容線</li>
+        <li><b>法遵安全</b>：定位資訊素養教學，全程不涉個股買賣建議</li>
+        <li><b>財經素養 PR</b>：呼應主管機關推動的投資人教育方向</li>
+      </ul></div>
+  </div></div>
+  <p class="footer-note">合作形式彈性：可純上架分潤、可共同品牌獨家、可工具授權整合——第 11 頁提供三種模式。</p>
+</section>
+
+<!-- 3 市場背景 -->
+<section class="slide">
+  <div class="eyebrow">01・為什麼是現在</div>
+  <h2>新一代投資人進場，<br>但「看新聞的能力」沒跟上</h2>
+  <div class="grow"><div class="cards c3">
+    <div class="card"><h3>年輕、行動優先的開戶潮</h3><p>零股交易與定期定額普及，大量新手用行動 App 進場——他們最缺的不是下單功能，是判讀資訊的方法。</p></div>
+    <div class="card"><h3>資訊過載</h3><p>財經新聞 App、社群、群組訊息爆量，新手每天被大量真假難辨的消息淹沒，容易追高殺低。</p></div>
+    <div class="card"><h3>教育需求正被政策推動</h3><p>投資人教育是金融業與主管機關共同關注方向；能提供「安全、不涉建議」的素養內容，是券商的加分項。</p></div>
+  </div></div>
+  <p class="footer-note">機會：券商平台擁有用戶與流量，但普遍缺少「教用戶怎麼消化資訊」的優質內容——這正是本提案補上的一塊。</p>
+</section>
+
+<!-- 4 痛點 -->
+<section class="slide">
+  <div class="eyebrow">02・平台的內容困境</div>
+  <h2>券商做投資教育，<br>常卡在這三件事</h2>
+  <div class="grow"><ul class="tick">
+    <li><b>內容同質化</b><span class="sub">——各家都在講技術分析、K 線、財報基礎，用戶看膩了，也記不住是哪一家教的。</span></li>
+    <li><b>法遵綁手綁腳</b><span class="sub">——只要碰個股就有投顧法風險，內容team 做得綁手綁腳，往往流於空泛。</span></li>
+    <li><b>看完就走，沉澱不了用戶</b><span class="sub">——影片看完沒有「可以每天用的工具或習慣」，無法把觀看轉成回訪與活躍。</span></li>
+  </ul></div>
+  <div class="quote" style="margin-top:1vh">
+    <p>用戶要的不是「更多內容」，<br>是一個「每天都想打開、而且合規安全」的學習理由。</p>
+    <div class="by">本提案的三個資產，正是為了同時解掉這三個結。</div>
+  </div>
+</section>
+
+<!-- 5 三個資產 -->
+<section class="slide">
+  <div class="eyebrow">03・我們帶來的三個資產</div>
+  <h2>一條完整的<span class="hl">投資素養內容線</span></h2>
+  <div class="grow"><div class="cards c3">
+    <div class="card"><span class="tag t">資產一・入門</span><h3><span class="n">A</span>散戶新聞實戰課</h3><p>零程式門檻、6 單元教學投影片。教用戶用對新聞、避開四大陷阱、建立每日看盤 SOP。適合平台最大宗的一般用戶。</p></div>
+    <div class="card"><span class="tag t">資產二・進階</span><h3><span class="n">B</span>Python 情報系統課</h3><p>8 模組實戰，串接新聞 API 與官方公告、自動去重、量化熱度。適合工程背景與進階用戶，拉高平台專業形象。</p></div>
+    <div class="card"><span class="tag g">資產三・工具</span><h3><span class="n">C</span>新聞多空監測工具</h3><p>已可運作的系統：自動判讀新聞利多/利空、彙整個股多空榜。可作課程實作素材，亦可授權整合進大戶投等 App。</p></div>
+  </div></div>
+  <p class="footer-note">三者形成漏斗：入門課吸引廣大用戶 → 工具養成每日回訪習慣 → 進階課沉澱高價值用戶。</p>
+</section>
+
+<!-- 6 資產A 入門課 -->
+<section class="slide">
+  <div class="eyebrow">資產 A・入門課</div>
+  <h2>散戶新聞實戰課</h2>
+  <p class="lede">為平台最大宗的一般投資人設計。不用寫程式、看得懂中文就能上，直接提升「看盤效率」。</p>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>單元</th><th>學員帶走的能力</th></tr></thead>
+    <tbody>
+      <tr><td>資訊鏈</td><td>看懂一則新聞到你手上經過幾站、延遲多久——接受「新聞是落後指標」</td></tr>
+      <tr><td>資訊源頭</td><td>建立自己的三來源清單，分清第一手 vs 轉載</td></tr>
+      <tr><td>5 分鐘判讀 SOP</td><td>五個固定問題，快速判斷一則新聞值不值得理</td></tr>
+      <tr><td>熱度思維</td><td>用新聞量的「變化」讀市場關注，避開擁擠行情</td></tr>
+      <tr><td>每日例行流程</td><td>盤前 30 分／盤中兩原則／盤後 15 分的完整 SOP</td></tr>
+      <tr><td>陷阱與驗證</td><td>辨識新聞陷阱、建立 T+1/T+5 事後驗證習慣</td></tr>
+    </tbody>
+  </table></div></div>
+  <p class="footer-note">形式：38 頁教學投影片 ＋ 4 個實戰練習。全課以「教學示例」呈現個股，封面與高風險頁均有免責聲明。</p>
+</section>
+
+<!-- 7 資產B 技術課 -->
+<section class="slide">
+  <div class="eyebrow">資產 B・進階技術課</div>
+  <h2>用 Python 打造股市新聞情報系統</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">課程規模</span>
+      <ul class="tick chk">
+        <li>8 模組・45 堂・8–10 小時</li>
+        <li>附完整可執行 GitHub 專案（含測試與 CI）</li>
+        <li>串接鉅亨 API、10+ 家媒體、TWSE/TPEx 官方公告</li>
+        <li>去重、時區、PIT 儲存、熱度量化全流程</li>
+      </ul></div>
+    <div class="card"><span class="tag g">對平台的意義</span>
+      <ul class="tick">
+        <li><b>拉高專業形象</b>：市面極少見的「生產級」財經工程課</li>
+        <li><b>吸引高價值客群</b>：工程師、量化愛好者、年輕高資產族</li>
+        <li><b>內容護城河</b>：一年免費更新承諾，內容不易被複製</li>
+      </ul></div>
+  </div></div>
+  <p class="footer-note">定位：進階付費內容，客單較高（原定價帶 NT$2,000–3,000），與入門課構成「免費/低價引流 → 進階變現」的雙層結構。</p>
+</section>
+
+<!-- 8 資產C 工具 demo -->
+<section class="slide">
+  <div class="eyebrow">資產 C・監測工具（已可運作）</div>
+  <h2>新聞利多/利空監測——<span class="hl">不是概念，是跑出來的</span></h2>
+  <div class="grow">
+    <div class="demo">
+<span class="hd">=== 新聞利多/利空監測 2026-07-03 ===</span>
+總計：利多 3 則｜利空 2 則｜中性 1 則
+
+<span class="hd">--- 個股利多榜 ---</span>
+  2330 台積電  <span class="up">net=+25.0  利多×2</span>
+     <span class="up">[利多+15]</span> 台積電上修財測 產能滿載供不應求
+     <span class="up">[利多+10]</span> 外資調升目標價 獲利優於預期
+  2303 聯電    <span class="up">net= +2.0  利多×1</span>
+     <span class="up">[利多 +2]</span> 市場傳出可望取得大單  <span class="dim">（傳聞→分數折半）</span>
+
+<span class="hd">--- 個股利空榜 ---</span>
+  2454 聯發科  <span class="dn">net= -6.0  利空×1</span>
+     <span class="dn">[利空 -6]</span> 聯發科遭砍單 全年展望轉保守
+    </div>
+    <p class="footer-note">規則透明可解釋：每則判定都能列出命中詞與權重；「市場傳出/可望」等傳聞用語自動折價，呼應課程「事實＞預期＞傳聞」的原則。可作課程實作教材，或作為 App 內的「今日新聞情緒」小工具。</p>
+  </div>
+</section>
+
+<!-- 9 工具整合想像 -->
+<section class="slide">
+  <div class="eyebrow">資產 C・整合場景</div>
+  <h2>它可以長在永豐金的平台裡</h2>
+  <div class="grow"><div class="cards c3">
+    <div class="card"><span class="tag t">情境一・課程實作</span><h3>當作教材</h3><p>入門/進階課學員照著跑，親手產出自己的多空榜——把「看完就走」變成「動手做出成果」。</p></div>
+    <div class="card"><span class="tag t">情境二・App 小工具</span><h3>今日新聞情緒</h3><p>整合進大戶投等 App，用戶查個股時附上「近期新聞多空傾向」與來源連結，提升查詢黏著。</p></div>
+    <div class="card"><span class="tag g">情境三・自選股推播</span><h3>盤前多空摘要</h3><p>依用戶自選股，每日盤前推送「你的持股昨夜有哪些利多/利空新聞」，創造每日回訪理由。</p></div>
+  </div></div>
+  <div class="footer-note">※ 所有整合情境均以「新聞語意整理／資訊呈現」為定位，附來源原文連結與免責聲明，不對個股做買賣評價；上線前送貴公司法遵確認。</div>
+</section>
+
+<!-- 10 對永豐金的價值 -->
+<section class="slide">
+  <div class="eyebrow">04・對永豐金的價值</div>
+  <h2>券商為什麼要做這個</h2>
+  <div class="grow"><div class="cards c4">
+    <div class="card"><h3>用戶黏著 ↑</h3><div class="big">每日<small>回訪理由</small></div><p>從交易工具變成「每天想打開的學習與情報入口」。</p></div>
+    <div class="card"><h3>平台差異化</h3><div class="big">獨有<small>內容線</small></div><p>「新聞判讀能力」是別家券商沒有的定位。</p></div>
+    <div class="card"><h3>導流交易</h3><div class="big">素養<small>→ 信心</small></div><p>更懂資訊的用戶更敢參與市場，活躍度提升。</p></div>
+    <div class="card"><h3>品牌與 PR</h3><div class="big">素養<small>形象</small></div><p>呼應投資人教育政策，正向品牌聯想。</p></div>
+  </div></div>
+  <p class="footer-note">關鍵：這些價值都不需要碰「投資建議」就能達成——靠的是「教方法、給工具」，而非「報明牌」。</p>
+</section>
+
+<!-- 11 法遵 -->
+<section class="slide">
+  <div class="eyebrow">05・法遵定位（券商最在意的一頁）</div>
+  <h2>為什麼這對永豐金是<span class="hl">安全</span>的內容</h2>
+  <div class="grow"><ul class="tick chk">
+    <li><b>定位為資訊素養與程式技術教學，非投資分析或投資建議</b><span class="sub">——課程與工具全程不對任何個股做買賣評價、不喊目標價、不報進出點。</span></li>
+    <li><b>個股一律為「教學示例」</b><span class="sub">——課程片頭、封面、結尾與高風險頁均有免責聲明；工具輸出每次附「非投資建議」聲明與原文連結。</span></li>
+    <li><b>教「怎麼判讀」而非「該買什麼」</b><span class="sub">——把判斷權還給用戶，這正是與投顧業務的清楚切割線。</span></li>
+    <li><b>上線前全數送貴公司法遵審閱</b><span class="sub">——內容、行銷素材、App 整合文案，配合永豐金法遵流程調整並留存紀錄。</span></li>
+  </ul></div>
+  <p class="footer-note">我方已備有完整法遵設計文件（投顧法、著作權、爬蟲、個資四大紅線），可提供貴公司法遵團隊先行審閱。</p>
+</section>
+
+<!-- 12 合作模式 -->
+<section class="slide">
+  <div class="eyebrow">06・合作模式（三選一或組合）</div>
+  <h2>三種合作深度</h2>
+  <div class="grow"><div class="cards c3">
+    <div class="term"><div class="k">模式一・最輕</div><div class="v">課程上架分潤</div>
+      <p>課程放上永豐金學習平台，依成交分潤。最快上線，驗證用戶反應。</p></div>
+    <div class="term" style="border-top-color:var(--accent)"><div class="k">模式二・推薦</div><div class="v">共同品牌獨家</div>
+      <p>永豐金 × 課程共同掛名、平台獨家；可客製「永豐金用戶專屬版」內容與行銷。</p></div>
+    <div class="term"><div class="k">模式三・最深</div><div class="v">工具授權整合</div>
+      <p>將多空監測工具授權整合進 App（今日情緒／自選股推播），採授權金或年費。</p></div>
+  </div></div>
+  <p class="footer-note">建議路徑：先以模式一或二快速上線驗證，成效好再談模式三的 App 整合——風險低、可分階段。</p>
+</section>
+
+<!-- 13 商業條件 -->
+<section class="slide">
+  <div class="eyebrow">07・商業條件（討論起點）</div>
+  <h2>彈性的分潤與授權架構</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>模式</th><th>計費方式</th><th>建議區間</th><th>備註</th></tr></thead>
+    <tbody>
+      <tr><td>課程上架分潤</td><td>依課程成交拆分</td><td class="num">平台 30–50%</td><td>依導流與獨家程度調整</td></tr>
+      <tr class="emph"><td>共同品牌獨家</td><td>分潤 + 保底</td><td class="num">另議</td><td>含專屬版客製與聯合行銷資源</td></tr>
+      <tr><td>工具授權整合</td><td>年度授權金 / 月費</td><td class="num">另議</td><td>依整合深度、API 用量與維運範圍</td></tr>
+    </tbody>
+  </table></div>
+  <p class="footer-note">以上為協商起點，實際條件依雙方合約為準。我方亦可接受「先小規模試營運、看數據再定案」的合作節奏。</p></div>
+</section>
+
+<!-- 14 時程 -->
+<section class="slide">
+  <div class="eyebrow">08・上線時程</div>
+  <h2>四階段，最快一季內上線</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>階段</th><th>時程</th><th>工作</th></tr></thead>
+    <tbody>
+      <tr><td>① 對齊與法遵</td><td class="num">2–3 週</td><td>確認合作模式；課程與工具送法遵審閱、依意見調整</td></tr>
+      <tr><td>② 內容客製</td><td class="num">3–4 週</td><td>永豐金專屬版包裝、片頭品牌、平台上架素材</td></tr>
+      <tr><td>③ 試營運</td><td class="num">4 週</td><td>入門課先上，觀察觀看/完課/回訪數據</td></tr>
+      <tr><td>④ 擴展</td><td class="num">後續</td><td>加上進階課；成效佳則啟動工具 App 整合</td></tr>
+    </tbody>
+  </table></div>
+  <p class="footer-note">課程與工具皆已完成，時程主要花在「法遵確認」與「品牌客製」，而非從零製作內容——這是本提案能快速上線的關鍵。</p></div>
+</section>
+
+<!-- 15 為什麼是我們 + CTA -->
+<section class="slide">
+  <div class="eyebrow">09・為什麼是我們 & 下一步</div>
+  <h2>成品已在手上，<br>不是一份<span class="hl-g">企劃書</span>而已</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">交付能力</span>
+      <ul class="tick chk">
+        <li>兩門課程 + 一套工具，皆已完成、可即刻示範</li>
+        <li>完整程式碼含測試與 CI，工程品質可受檢視</li>
+        <li>已備完整法遵設計文件，供貴公司先行審閱</li>
+      </ul></div>
+    <div class="card"><span class="tag g">下一步（提議）</span>
+      <ul class="tick">
+        <li><b>30 分鐘線上 demo</b>：現場展示課程與工具實跑</li>
+        <li><b>交付法遵文件</b>：讓貴公司法遵團隊先評估</li>
+        <li><b>選定試營運模式</b>：從模式一/二挑一，訂上線里程碑</li>
+      </ul></div>
+  </div></div>
+  <div class="quote" style="margin-top:1vh">
+    <p>讓永豐金的投資人，<br>不只在你的平台<span class="hl">下單</span>，也在你的平台<span class="hl">變強</span>。</p>
+  </div>
+  <p class="footer-note">本提案內容為合作討論用途；一切課程與工具均定位為投資知識與資訊素養教學，不構成投資分析或買賣建議。品牌名稱僅為說明合作對象，實際合作以雙方正式合約為準。</p>
+</section>
+
+</div>
+
+<div class="hud">
+  <div class="count" id="count">1 / 15</div>
+  <div class="btns">
+    <button id="theme" aria-label="切換深淺色">◐</button>
+    <button id="prev" aria-label="上一頁">←</button>
+    <button id="next" aria-label="下一頁">→</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var i=0,n=slides.length;
+  var bar=document.getElementById('bar'),count=document.getElementById('count');
+  function go(k){
+    i=Math.max(0,Math.min(n-1,k));
+    slides.forEach(function(s,j){s.classList.toggle('active',j===i);});
+    bar.style.width=((i+1)/n*100)+'%';
+    count.textContent=(i+1)+' / '+n;
+  }
+  document.getElementById('next').onclick=function(){go(i+1)};
+  document.getElementById('prev').onclick=function(){go(i-1)};
+  document.getElementById('theme').onclick=function(){
+    var r=document.documentElement;
+    var cur=r.getAttribute('data-theme');
+    if(!cur){cur=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    r.setAttribute('data-theme',cur==='dark'?'light':'dark');
+  };
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(i+1);}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(i-1);}
+    if(e.key==='Home'){go(0)} if(e.key==='End'){go(n-1)}
+  });
+  var x0=null;
+  document.addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(x0===null)return;
+    var dx=e.changedTouches[0].clientX-x0;
+    if(Math.abs(dx)>60) go(i+(dx<0?1:-1));
+    x0=null;
+  });
+  go(0);
+})();
+</script>
+</body>
+</html>
