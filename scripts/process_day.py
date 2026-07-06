@@ -25,10 +25,12 @@ from dateutil import parser as dtparser  # type: ignore
 try:
     from .common import TAIPEI, norm_title
     from . import storage
+    from .sentiment import classify_news
     from .watch_intraday import classify, load_alias_index, match_tickers
 except ImportError:
     from common import TAIPEI, norm_title
     import storage
+    from sentiment import classify_news
     from watch_intraday import classify, load_alias_index, match_tickers
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -169,6 +171,10 @@ def build_records(
             text = f"{title} {item.get('summary', '')}"
             tickers = match_tickers(text, alias_index)
         tags = list(item["tags"]) if "tags" in item else classify(title)
+        # stream 事件已由 watch_intraday 標過 sentiment，直接沿用；raw 項目現算
+        senti = item.get("sentiment") or classify_news(
+            title, item.get("summary", ""), item.get("content", item.get("body", ""))
+        )
 
         rec = {
             "id": _record_id(item),
@@ -187,6 +193,9 @@ def build_records(
             else None,
             "tickers": tickers,
             "tags": tags,
+            "sentiment_label": senti.get("label", "中性"),
+            "sentiment_score": float(senti.get("score") or 0.0),
+            "sentiment_hits": list(senti.get("hits") or []),
         }
 
         by_title.setdefault(tkey, []).append(rec)

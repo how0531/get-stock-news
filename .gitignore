@@ -5,6 +5,7 @@ data/factors/
 data/target_price/
 data/stream/
 data/state/
+data/sentiment/
 
 # Keep curated assets
 !data/stocks/
