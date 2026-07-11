@@ -38,9 +38,9 @@
   html,body{margin:0;height:100%}
   body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
 
-  .deck{position:relative;height:100vh;width:100vw}
+  .deck{position:relative;height:100vh;width:100vw;touch-action:pan-y}
   .slide{position:absolute;inset:0;display:none;flex-direction:column;
-    padding:clamp(24px,5vh,52px) clamp(26px,7vw,104px);overflow-y:auto}
+    padding:clamp(24px,5vh,52px) clamp(26px,7vw,104px) 72px;overflow-y:auto}
   .slide.active{display:flex}
   @media (prefers-reduced-motion: no-preference){
     .slide.active{animation:fadein .3s ease}
@@ -103,7 +103,7 @@
 
   .demo{background:var(--deep);border-radius:8px;padding:clamp(14px,2.4vh,22px) clamp(16px,2vw,24px);
     font-family:var(--mono);font-size:clamp(11px,1.7vh,13.5px);line-height:1.75;color:#DCE8E4;
-    overflow-x:auto}
+    white-space:pre;overflow-x:auto}
   .demo .up{color:#5FD0AE} .demo .dn{color:#E88A6F} .demo .dim{color:#7C9188}
   .demo .hd{color:var(--gold);font-weight:700}
 
@@ -134,17 +134,30 @@
   .hud button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .bar{position:fixed;top:0;left:0;height:3px;background:var(--gold);width:0;z-index:6;transition:width .25s}
   @media (prefers-reduced-motion: reduce){.bar{transition:none}}
+
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  @media print{
+    html,body{height:auto;overflow:visible}
+    .deck{height:auto}
+    .slide{display:flex!important;position:relative;inset:auto;min-height:100vh;
+      padding:32px 40px;page-break-after:always;break-after:page;overflow:visible}
+    .demo{white-space:pre-wrap}
+    .hud,.bar{display:none}
+  }
 </style>
 </head>
 <body>
 <div class="bar" id="bar"></div>
-<div class="deck">
+<p class="sr-only">使用左右方向鍵、空白鍵，或畫面右下角按鈕翻頁，共 15 頁。</p>
+<div class="deck" role="region" aria-label="永豐金課程平台合作提案">
 
 <!-- 1 封面 -->
 <section class="slide cover active">
   <div class="brand">課程平台合作提案・COURSE PARTNERSHIP</div>
   <h1>把「看懂新聞」<br>做成永豐金投資人的<br><span class="hl">日常能力</span></h1>
-  <p class="sub">一套已完成的財經資訊素養課程 ＋ 一個可運作的新聞多空監測工具，<br>為永豐金課程平台帶來安全、差異化、能沉澱用戶的投資教育內容。</p>
+  <p class="sub">一套已完成的財經資訊素養課程 ＋ 一個可運作的<span style="white-space:nowrap">新聞多空監測工具</span>，<br>為永豐金課程平台帶來安全、差異化、能沉澱用戶的投資教育內容。</p>
   <div class="meta">
     <div><div class="k">提案對象</div><div class="v">永豐金證券・課程/投資學習平台</div></div>
     <div><div class="k">提案內容</div><div class="v">課程上架 × 工具整合 × 共同品牌</div></div>
@@ -168,7 +181,7 @@
         <li><b>用戶黏著</b>：從「開戶交易」延伸到「每天回來學習」</li>
         <li><b>平台差異化</b>：別家券商沒有的「新聞判讀能力」內容線</li>
         <li><b>法遵安全</b>：定位資訊素養教學，全程不涉個股買賣建議</li>
-        <li><b>財經素養 PR</b>：呼應主管機關推動的投資人教育方向</li>
+        <li><b>財經素養 PR</b>：投資人教育帶來的正向品牌形象</li>
       </ul></div>
   </div></div>
   <p class="footer-note">合作形式彈性：可純上架分潤、可共同品牌獨家、可工具授權整合——第 11 頁提供三種模式。</p>
@@ -192,7 +205,7 @@
   <h2>券商做投資教育，<br>常卡在這三件事</h2>
   <div class="grow"><ul class="tick">
     <li><b>內容同質化</b><span class="sub">——各家都在講技術分析、K 線、財報基礎，用戶看膩了，也記不住是哪一家教的。</span></li>
-    <li><b>法遵綁手綁腳</b><span class="sub">——只要碰個股就有投顧法風險，內容team 做得綁手綁腳，往往流於空泛。</span></li>
+    <li><b>法遵綁手綁腳</b><span class="sub">——只要碰個股就有投顧法風險，內容團隊做起來處處受限，往往流於空泛。</span></li>
     <li><b>看完就走，沉澱不了用戶</b><span class="sub">——影片看完沒有「可以每天用的工具或習慣」，無法把觀看轉成回訪與活躍。</span></li>
   </ul></div>
   <div class="quote" style="margin-top:1vh">
@@ -259,21 +272,21 @@
   <div class="eyebrow">資產 C・監測工具（已可運作）</div>
   <h2>新聞利多/利空監測——<span class="hl">不是概念，是跑出來的</span></h2>
   <div class="grow">
-    <div class="demo">
-<span class="hd">=== 新聞利多/利空監測 2026-07-03 ===</span>
-總計：利多 3 則｜利空 2 則｜中性 1 則
+    <div class="demo"><span class="hd">=== 新聞利多/利空監測 2026-07-03 ===</span>
+本日新聞：利多 3 則｜利空 2 則｜中性 1 則
 
-<span class="hd">--- 個股利多榜 ---</span>
-  2330 台積電  <span class="up">net=+25.0  利多×2</span>
+<span class="hd">--- 新聞偏多的個股（依當日新聞語氣彙整） ---</span>
+  2330 台積電  <span class="up">新聞語氣分 +25.0</span>
      <span class="up">[利多+15]</span> 台積電上修財測 產能滿載供不應求
-     <span class="up">[利多+10]</span> 外資調升目標價 獲利優於預期
-  2303 聯電    <span class="up">net= +2.0  利多×1</span>
+     <span class="up">[利多+10]</span> 第二季營收優於市場預期
+  2303 聯電    <span class="up">新聞語氣分  +2.0</span>
      <span class="up">[利多 +2]</span> 市場傳出可望取得大單  <span class="dim">（傳聞→分數折半）</span>
 
-<span class="hd">--- 個股利空榜 ---</span>
-  2454 聯發科  <span class="dn">net= -6.0  利空×1</span>
+<span class="hd">--- 新聞偏空的個股（依當日新聞語氣彙整） ---</span>
+  2454 聯發科  <span class="dn">新聞語氣分  -6.0</span>
      <span class="dn">[利空 -6]</span> 聯發科遭砍單 全年展望轉保守
-    </div>
+
+<span class="dim">※ 分類的是「新聞的語氣」，非對個股的買賣評價或推介。</span></div>
     <p class="footer-note">規則透明可解釋：每則判定都能列出命中詞與權重；「市場傳出/可望」等傳聞用語自動折價，呼應課程「事實＞預期＞傳聞」的原則。可作課程實作教材，或作為 App 內的「今日新聞情緒」小工具。</p>
   </div>
 </section>
@@ -285,7 +298,7 @@
   <div class="grow"><div class="cards c3">
     <div class="card"><span class="tag t">情境一・課程實作</span><h3>當作教材</h3><p>入門/進階課學員照著跑，親手產出自己的多空榜——把「看完就走」變成「動手做出成果」。</p></div>
     <div class="card"><span class="tag t">情境二・App 小工具</span><h3>今日新聞情緒</h3><p>整合進大戶投等 App，用戶查個股時附上「近期新聞多空傾向」與來源連結，提升查詢黏著。</p></div>
-    <div class="card"><span class="tag g">情境三・自選股推播</span><h3>盤前多空摘要</h3><p>依用戶自選股，每日盤前推送「你的持股昨夜有哪些利多/利空新聞」，創造每日回訪理由。</p></div>
+    <div class="card"><span class="tag g">情境三・自選股推播</span><h3>盤前新聞摘要</h3><p>依用戶自選股，每日盤前推送「你的持股昨夜有哪些相關新聞、語氣偏多或偏空」，附原文連結、不做買賣結論，創造每日回訪理由。</p></div>
   </div></div>
   <div class="footer-note">※ 所有整合情境均以「新聞語意整理／資訊呈現」為定位，附來源原文連結與免責聲明，不對個股做買賣評價；上線前送貴公司法遵確認。</div>
 </section>
@@ -297,7 +310,7 @@
   <div class="grow"><div class="cards c4">
     <div class="card"><h3>用戶黏著 ↑</h3><div class="big">每日<small>回訪理由</small></div><p>從交易工具變成「每天想打開的學習與情報入口」。</p></div>
     <div class="card"><h3>平台差異化</h3><div class="big">獨有<small>內容線</small></div><p>「新聞判讀能力」是別家券商沒有的定位。</p></div>
-    <div class="card"><h3>導流交易</h3><div class="big">素養<small>→ 信心</small></div><p>更懂資訊的用戶更敢參與市場，活躍度提升。</p></div>
+    <div class="card"><h3>參與信心</h3><div class="big">素養<small>→ 信心</small></div><p>更懂資訊的用戶，參與市場更有信心、也更能理性判斷。</p></div>
     <div class="card"><h3>品牌與 PR</h3><div class="big">素養<small>形象</small></div><p>呼應投資人教育政策，正向品牌聯想。</p></div>
   </div></div>
   <p class="footer-note">關鍵：這些價值都不需要碰「投資建議」就能達成——靠的是「教方法、給工具」，而非「報明牌」。</p>
@@ -313,7 +326,7 @@
     <li><b>教「怎麼判讀」而非「該買什麼」</b><span class="sub">——把判斷權還給用戶，這正是與投顧業務的清楚切割線。</span></li>
     <li><b>上線前全數送貴公司法遵審閱</b><span class="sub">——內容、行銷素材、App 整合文案，配合永豐金法遵流程調整並留存紀錄。</span></li>
   </ul></div>
-  <p class="footer-note">我方已備有完整法遵設計文件（投顧法、著作權、爬蟲、個資四大紅線），可提供貴公司法遵團隊先行審閱。</p>
+  <p class="footer-note">我方已備有完整法遵設計文件（投顧法、著作權、爬蟲、個資四大紅線），可提供貴公司法遵團隊先行審閱；工具僅擷取標題／摘要／來源連結、不對外重製新聞全文，來源授權界線已在文件中釐清。</p>
 </section>
 
 <!-- 12 合作模式 -->
@@ -389,7 +402,7 @@
 </div>
 
 <div class="hud">
-  <div class="count" id="count">1 / 15</div>
+  <div class="count" id="count" aria-live="polite" aria-atomic="true">1 / 15</div>
   <div class="btns">
     <button id="theme" aria-label="切換深淺色">◐</button>
     <button id="prev" aria-label="上一頁">←</button>
@@ -402,6 +415,7 @@
   var slides=[].slice.call(document.querySelectorAll('.slide'));
   var i=0,n=slides.length;
   var bar=document.getElementById('bar'),count=document.getElementById('count');
+  slides.forEach(function(s){s.setAttribute('role','group');s.setAttribute('aria-roledescription','投影片');});
   function go(k){
     i=Math.max(0,Math.min(n-1,k));
     slides.forEach(function(s,j){s.classList.toggle('active',j===i);});
@@ -417,17 +431,19 @@
     r.setAttribute('data-theme',cur==='dark'?'light':'dark');
   };
   document.addEventListener('keydown',function(e){
+    if(e.key===' '&&e.target&&e.target.tagName==='BUTTON')return;
     if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(i+1);}
     if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(i-1);}
-    if(e.key==='Home'){go(0)} if(e.key==='End'){go(n-1)}
+    if(e.key==='Home'){e.preventDefault();go(0);}
+    if(e.key==='End'){e.preventDefault();go(n-1);}
   });
-  var x0=null;
-  document.addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  var x0=null,y0=null;
+  document.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY;},{passive:true});
   document.addEventListener('touchend',function(e){
     if(x0===null)return;
-    var dx=e.changedTouches[0].clientX-x0;
-    if(Math.abs(dx)>60) go(i+(dx<0?1:-1));
-    x0=null;
+    var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5) go(i+(dx<0?1:-1));
+    x0=null;y0=null;
   });
   go(0);
 })();
