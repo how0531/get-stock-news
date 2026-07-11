@@ -34,7 +34,7 @@ jobs:
 
       - name: Run get-stock-NEWS offline test suite
         working-directory: scripts
-        run: python -m pytest test_storage.py test_collect.py -q
+        run: python -m pytest test_storage.py test_collect.py test_sentiment.py -q
 
       - name: Run stock-heat-model offline test suite
         working-directory: skills/stock-heat-model/scripts

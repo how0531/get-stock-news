@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>散戶新聞實戰課｜教學投影片</title>
+<style>
+  :root{
+    --bg:#F5F6F4; --surface:#FFFFFF; --ink:#1C2B33; --sub:#4F6068;
+    --accent:#C43D2E; --accent-strong:#A5301F; --accent-soft:#F8EAE7; --teal:#166B5D; --teal-soft:#E2EFEB;
+    --amber:#9A6A12; --amber-soft:#F6EDDA;
+    --line:#DCE1DD; --chip:#ECEFEA;
+    --serif:"Noto Serif TC","Songti TC",PMingLiU,Georgia,serif;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#131B1E; --surface:#1C272C; --ink:#E9EEEF; --sub:#97A8AE;
+      --accent:#E2604F; --accent-strong:#E2604F; --accent-soft:#3B2521; --teal:#4FB8A4; --teal-soft:#1B332E;
+      --amber:#D9A84E; --amber-soft:#33290F;
+      --line:#2C3B40; --chip:#223237;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#131B1E; --surface:#1C272C; --ink:#E9EEEF; --sub:#97A8AE;
+    --accent:#E2604F; --accent-strong:#E2604F; --accent-soft:#3B2521; --teal:#4FB8A4; --teal-soft:#1B332E;
+    --amber:#D9A84E; --amber-soft:#33290F;
+    --line:#2C3B40; --chip:#223237;
+  }
+  :root[data-theme="light"]{
+    --bg:#F5F6F4; --surface:#FFFFFF; --ink:#1C2B33; --sub:#4F6068;
+    --accent:#C43D2E; --accent-strong:#A5301F; --accent-soft:#F8EAE7; --teal:#166B5D; --teal-soft:#E2EFEB;
+    --amber:#9A6A12; --amber-soft:#F6EDDA;
+    --line:#DCE1DD; --chip:#ECEFEA;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+
+  .deck{position:relative;height:100vh;width:100vw;touch-action:pan-y}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;
+    padding:clamp(24px,5vh,52px) clamp(24px,7vw,100px) 72px;overflow-y:auto}
+  .slide.active{display:flex}
+  @media (prefers-reduced-motion: no-preference){
+    .slide.active{animation:fadein .3s ease}
+    @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  }
+
+  .eyebrow{font-size:clamp(11px,1.5vh,13px);letter-spacing:.18em;color:var(--teal);
+    font-weight:700;margin-bottom:1.2vh}
+  h1{font-family:var(--serif);font-weight:900;font-size:clamp(30px,6.2vh,56px);
+    line-height:1.25;margin:0 0 1.8vh;text-wrap:balance}
+  h2{font-family:var(--serif);font-weight:900;font-size:clamp(23px,4.4vh,38px);
+    line-height:1.35;margin:0 0 2.2vh;text-wrap:balance}
+  .hl{color:var(--accent)}
+  p.lede{font-size:clamp(15px,2.4vh,19px);color:var(--sub);line-height:1.85;max-width:33em;margin:0 0 1.6vh}
+  .grow{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
+
+  .cards{display:grid;gap:clamp(10px,1.8vh,18px)}
+  .cards.c2{grid-template-columns:1fr 1fr}
+  .cards.c3{grid-template-columns:1fr 1fr 1fr}
+  .cards.c4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:820px){.cards.c2,.cards.c3,.cards.c4{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:clamp(13px,2.4vh,22px) clamp(14px,1.8vw,22px)}
+  .card h3{margin:0 0 .8vh;font-size:clamp(14.5px,2.2vh,17.5px);font-weight:700}
+  .card p{margin:0;font-size:clamp(13px,1.9vh,15px);color:var(--sub);line-height:1.8}
+  .tag{display:inline-block;font-size:clamp(10.5px,1.5vh,12px);font-weight:700;border-radius:4px;
+    padding:2px 9px;margin-bottom:1vh;letter-spacing:.08em}
+  .tag.t{color:var(--teal);background:var(--teal-soft)}
+  .tag.r{color:var(--accent-strong);background:var(--accent-soft)}
+  .tag.a{color:var(--amber);background:var(--amber-soft)}
+
+  ul.tick{list-style:none;padding:0;margin:0;font-size:clamp(13.5px,2.1vh,16px);line-height:1.8}
+  ul.tick li{padding:.9vh 0 .9vh 1.8em;position:relative;border-bottom:1px dashed var(--line)}
+  ul.tick li:last-child{border-bottom:none}
+  ul.tick li::before{content:"✓";position:absolute;left:0;color:var(--teal);font-weight:700}
+  ul.tick.x li::before{content:"✕";color:var(--accent)}
+  ul.tick .sub{color:var(--sub)}
+
+  .chain{display:flex;gap:0;flex-wrap:wrap;align-items:stretch}
+  .chain .step{flex:1;min-width:130px;background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;padding:clamp(11px,2vh,18px) 14px;position:relative;text-align:center}
+  .chain .step + .step{margin-left:30px}
+  .chain .step + .step::before{content:"→";position:absolute;left:-25px;top:50%;
+    transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:19px}
+  @media (max-width:820px){
+    .chain{flex-direction:column}
+    .chain .step + .step{margin-left:0;margin-top:24px}
+    .chain .step + .step::before{content:"↓";left:50%;top:-22px;transform:translateX(-50%)}
+  }
+  .chain .who{font-weight:700;font-size:clamp(13.5px,2vh,16px)}
+  .chain .lag{font-family:var(--mono);font-size:clamp(10.5px,1.5vh,12px);color:var(--accent-strong);margin-top:.5vh}
+  .chain .note{font-size:clamp(11px,1.6vh,12.5px);color:var(--sub);margin-top:.4vh;line-height:1.5}
+
+  table{width:100%;border-collapse:collapse;font-size:clamp(12.5px,1.95vh,15px)}
+  th{font-size:clamp(10.5px,1.5vh,12.5px);letter-spacing:.1em;color:var(--sub);text-align:left;
+    font-weight:700;padding:.9vh 12px;border-bottom:2px solid var(--ink)}
+  td{padding:1vh 12px;border-bottom:1px solid var(--line);line-height:1.65;vertical-align:top}
+  tr.emph td{background:var(--teal-soft)}
+  .tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;padding:clamp(8px,1.4vh,16px) clamp(10px,1.2vw,18px)}
+
+  .unit-cover{justify-content:center}
+  .unit-cover .num{font-family:var(--serif);font-weight:900;font-size:clamp(60px,16vh,140px);
+    color:var(--accent);line-height:1;opacity:.92}
+  .unit-cover .goal{margin-top:3vh;background:var(--surface);border:1px solid var(--line);
+    border-left:4px solid var(--teal);border-radius:0 8px 8px 0;
+    padding:clamp(12px,2.2vh,20px) 20px;max-width:36em}
+  .unit-cover .goal .k{font-size:clamp(10.5px,1.5vh,12px);letter-spacing:.15em;color:var(--teal);font-weight:700}
+  .unit-cover .goal p{margin:.6vh 0 0;font-size:clamp(14px,2.2vh,17px);line-height:1.8}
+
+  .quote{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);
+    border-radius:0 8px 8px 0;padding:clamp(16px,3vh,28px) clamp(18px,2.4vw,30px);max-width:38em}
+  .quote p{margin:0;font-family:var(--serif);font-weight:700;
+    font-size:clamp(17px,3vh,24px);line-height:1.75}
+  .quote .by{margin-top:1.2vh;font-family:var(--sans);font-weight:400;
+    font-size:clamp(12px,1.8vh,14px);color:var(--sub)}
+
+  .practice{background:var(--teal-soft);border:1px solid var(--teal);border-radius:8px;
+    padding:clamp(14px,2.6vh,24px) clamp(16px,2vw,26px)}
+  .practice .k{font-size:clamp(10.5px,1.5vh,12px);letter-spacing:.15em;color:var(--teal);font-weight:700}
+  .practice h3{margin:.6vh 0 1vh;font-size:clamp(16px,2.6vh,20px)}
+  .practice ol{margin:0;padding-left:1.4em;font-size:clamp(13.5px,2vh,15.5px);line-height:1.85;color:var(--ink)}
+
+  .warn{background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;
+    padding:clamp(12px,2.2vh,20px) 18px;font-size:clamp(13px,2vh,15px);line-height:1.8}
+  .warn b{color:var(--accent)}
+
+  .footer-note{margin-top:2vh;font-size:clamp(11.5px,1.7vh,13px);color:var(--sub);line-height:1.7}
+
+  .cover{justify-content:center}
+  .cover .brand{font-family:var(--mono);color:var(--teal);font-size:clamp(12px,1.8vh,14px);
+    letter-spacing:.12em;margin-bottom:3vh}
+  .cover .sub{font-size:clamp(15px,2.6vh,21px);color:var(--sub);line-height:1.95;max-width:30em}
+
+  .hud{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;
+    justify-content:space-between;padding:10px clamp(16px,3vw,40px);pointer-events:none;z-index:5}
+  .hud .count{font-family:var(--mono);font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+  .hud .btns{pointer-events:auto;display:flex;gap:8px}
+  .hud button{background:var(--surface);border:1px solid var(--line);color:var(--ink);
+    width:38px;height:38px;border-radius:50%;font-size:16px;cursor:pointer}
+  .hud button:hover{border-color:var(--accent);color:var(--accent)}
+  .hud button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .bar{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:6;transition:width .25s}
+  @media (prefers-reduced-motion: reduce){.bar{transition:none}}
+
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  @media print{
+    html,body{height:auto;overflow:visible}
+    .deck{height:auto}
+    .slide{display:flex!important;position:relative;inset:auto;min-height:100vh;
+      padding:32px 40px;page-break-after:always;break-after:page;overflow:visible}
+    .hud,.bar{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<p class="sr-only">使用左右方向鍵、空白鍵，或畫面右下角按鈕翻頁，共 38 頁。</p>
+<div class="deck" role="region" aria-label="散戶新聞實戰課教學投影片">
+
+<!-- 1 封面 -->
+<section class="slide cover active">
+  <div class="brand">散戶新聞實戰課・教學投影片</div>
+  <h1>用對新聞，<br>讓看盤效率<span class="hl">翻倍</span></h1>
+  <p class="sub">不用寫程式、不用付費軟體。<br>六個單元，把「每天滑一小時新聞」變成「30 分鐘看懂重點」，<br>並且避開新聞最常讓散戶賠錢的陷阱。</p>
+  <p class="footer-note">本課程為投資知識與資訊素養教學，不構成投資分析或任何個股之買賣建議。課程中出現之個股皆為教學示例，投資決策請自行判斷，盈虧自負。</p>
+</section>
+
+<!-- 2 學什麼不學什麼 -->
+<section class="slide">
+  <div class="eyebrow">開始之前</div>
+  <h2>這門課教什麼、不教什麼</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">你會學到</span>
+      <ul class="tick">
+        <li>看懂<b>新聞的資訊鏈</b>：你看到的消息「幾手」了</li>
+        <li>一套 <b>5 分鐘判讀 SOP</b>：快速分辨重要 / 不重要</li>
+        <li><b>熱度思維</b>：從新聞量的「變化」讀出市場關注</li>
+        <li>每天 <b>30 分鐘的例行流程</b>：盤前、盤中、盤後</li>
+        <li>辨識<b>四大新聞陷阱</b>，不再看到利多就追高</li>
+      </ul></div>
+    <div class="card"><span class="tag r">你不會學到</span>
+      <ul class="tick x">
+        <li>明牌、老師帶單、保證獲利的方法（不存在）</li>
+        <li>任何個股的買賣建議</li>
+        <li>寫程式（想全自動化？那是進階課的事）</li>
+      </ul>
+      <p style="margin-top:1.5vh">我們的目標很務實：<b>同樣的看盤時間，換到更好的資訊品質。</b></p></div>
+  </div></div>
+</section>
+
+<!-- 3 課程地圖 -->
+<section class="slide">
+  <div class="eyebrow">課程地圖</div>
+  <h2>六個單元，一條路徑</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>單元</th><th>主題</th><th>你會得到</th></tr></thead>
+    <tbody>
+      <tr><td><b>1</b></td><td>為什麼你總是慢一步</td><td>看懂資訊鏈，接受「新聞是落後指標」這個前提</td></tr>
+      <tr><td><b>2</b></td><td>認識你的資訊源頭</td><td>一份自己的「資訊源清單」：誰快、誰準、誰是轉載</td></tr>
+      <tr><td><b>3</b></td><td>5 分鐘判讀 SOP</td><td>拿到任何一則新聞，五個問題判斷它值不值得理</td></tr>
+      <tr><td><b>4</b></td><td>熱度思維</td><td>用「新聞量的變化」讀市場關注，避開擁擠行情</td></tr>
+      <tr><td><b>5</b></td><td>每日例行流程</td><td>盤前 30 分／盤中 2 原則／盤後 15 分的完整 SOP</td></tr>
+      <tr><td><b>6</b></td><td>陷阱與驗證</td><td>四大陷阱辨識法＋自己的 T+1 / T+5 驗證習慣</td></tr>
+    </tbody>
+  </table></div></div>
+  <p class="footer-note">多數單元結尾都有一個「實戰練習」，全課共四個——這門課的重點是做，不是聽。</p>
+</section>
+
+<!-- 4 單元一封面 -->
+<section class="slide unit-cover">
+  <div class="num">壹</div>
+  <h1>為什麼你總是慢一步</h1>
+  <div class="goal"><div class="k">本單元目標</div>
+    <p>看懂一則新聞從「發生」到「你的手機」中間經過幾站、延遲多久——並且接受一個殘酷但重要的前提：<b>等你看到，市場多半已經反應。</b></p></div>
+</section>
+
+<!-- 5 資訊鏈 -->
+<section class="slide">
+  <div class="eyebrow">單元一・資訊鏈</div>
+  <h2>一則消息到你手上，走了<span class="hl">五站</span></h2>
+  <div class="grow"><div class="chain">
+    <div class="step"><div class="who">公司公告</div><div class="lag">起點 T+0</div><div class="note">重大訊息依法須揭露於公開資訊觀測站（MOPS），且不得私下搶先透露給特定媒體</div></div>
+    <div class="step"><div class="who">通訊社快訊</div><div class="lag">約 +10 分</div><div class="note">中央社等發出第一則快訊</div></div>
+    <div class="step"><div class="who">媒體改寫</div><div class="lag">+30 分～數小時</div><div class="note">各家財經媒體加標題、加評論</div></div>
+    <div class="step"><div class="who">App 推播</div><div class="lag">+數小時</div><div class="note">演算法決定推不推給你</div></div>
+    <div class="step"><div class="who">你看到</div><div class="lag">最後一站</div><div class="note">而且常常同一件事看到四次</div></div>
+  </div></div>
+  <p class="footer-note">重點不是絕望，是定位：知道自己在鏈的哪一站，才知道該把力氣花在哪。下一頁告訴你怎麼往前站。（各站時間僅為示意，實際延遲依訊息類型與媒體差異很大。）</p>
+</section>
+
+<!-- 6 落後指標 -->
+<section class="slide">
+  <div class="eyebrow">單元一・關鍵前提</div>
+  <h2>新聞是<span class="hl">落後指標</span></h2>
+  <div class="grow">
+    <div class="quote">
+      <p>「當一則利多登上新聞 App 的推播，<br>知道的人已經夠多了——<br>它的價格，通常已經反應了一部分。」</p>
+      <div class="by">這不是陰謀論，是資訊傳遞的物理性質。</div>
+    </div>
+    <div class="footer-note" style="max-width:38em">
+      所以「看到利多 → 馬上買」這個動作，本質上是用<b>最慢的資訊</b>做<b>最快的決策</b>——這是散戶被新聞傷到的第一大原因。
+    </div>
+  </div>
+</section>
+
+<!-- 7 正確用法 -->
+<section class="slide">
+  <div class="eyebrow">單元一・那新聞還有用嗎</div>
+  <h2>有——但用法跟你想的不一樣</h2>
+  <div class="grow"><div class="cards c3">
+    <div class="card"><span class="tag t">用法一</span><h3>看「關注度的變化」</h3><p>新聞的量與變化，反映市場的眼睛在看哪裡——這比單一則新聞的內容更有資訊量（單元四）。</p></div>
+    <div class="card"><span class="tag t">用法二</span><h3>往源頭站</h3><p>學會直接看官方公告與第一手來源，把自己從第五站移到第二站（單元二）。</p></div>
+    <div class="card"><span class="tag t">用法三</span><h3>建立紀律</h3><p>新聞用來「觸發研究」，永遠不直接「觸發下單」——中間隔一層自己的判讀 SOP（單元三、六）。</p></div>
+  </div></div>
+  <div class="warn"><b>唯一的錯誤用法：</b>把新聞當買賣訊號。看到利多就追、看到利空就砍——這等於把你的錢包接上全市場最慢的那條線。</div>
+</section>
+
+<!-- 8 單元二封面 -->
+<section class="slide unit-cover">
+  <div class="num">貳</div>
+  <h1>認識你的資訊源頭</h1>
+  <div class="goal"><div class="k">本單元目標</div>
+    <p>做出一份<b>自己的資訊源清單</b>：知道哪裡是第一手、哪幾家媒體值得追、哪些只是轉載聚合——全部免費。</p></div>
+</section>
+
+<!-- 9 第一手vs二手 -->
+<section class="slide">
+  <div class="eyebrow">單元二・source</div>
+  <h2>第一手 vs 二手：先分清楚</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">第一手（源頭，免費）</span>
+      <ul class="tick">
+        <li><b>重大訊息</b><span class="sub">——公開資訊觀測站／證交所網站，公司依法必須先發在這裡</span></li>
+        <li><b>法說會簡報</b><span class="sub">——公司自己說的營運展望，比記者轉述完整</span></li>
+        <li><b>月營收公告</b><span class="sub">——每月 10 日前公告；官方硬數字，但屬未查核的自結營收，代表規模、不代表獲利</span></li>
+      </ul></div>
+    <div class="card"><span class="tag a">二手（媒體加工）</span>
+      <ul class="tick">
+        <li><b>快訊</b><span class="sub">——快，但只有骨架</span></li>
+        <li><b>分析報導</b><span class="sub">——有觀點，但觀點是記者／受訪者的</span></li>
+        <li><b>聚合轉載</b><span class="sub">——同一件事的第 N 次出現，資訊量趨近於零</span></li>
+      </ul></div>
+  </div></div>
+  <p class="footer-note">效率法則：<b>大事看第一手，日常掃二手。</b>重大訊息用官方網站確認原文，只花 30 秒，勝過讀三篇改寫報導。</p>
+</section>
+
+<!-- 10 媒體地圖 -->
+<section class="slide">
+  <div class="eyebrow">單元二・台灣財經媒體地圖</div>
+  <h2>誰快、誰深、誰是轉載</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>來源</th><th>特性</th><th>適合用來</th></tr></thead>
+    <tbody>
+      <tr class="emph"><td><b>證交所／櫃買 重大訊息</b></td><td>官方第一手、法定格式</td><td>大事確認原文（最重要）</td></tr>
+      <tr><td>鉅亨網</td><td>速度快、盤中速報密集</td><td>盤中掃快訊</td></tr>
+      <tr><td>中央社</td><td>權威通訊社，政策／總經第一手</td><td>政策與總經大事</td></tr>
+      <tr><td>MoneyDJ</td><td>法人圈常用、個股新聞密度高</td><td>個股深度追蹤</td></tr>
+      <tr><td>經濟日報／工商時報</td><td>產業線深度</td><td>盤後與週末補課</td></tr>
+      <tr><td>Yahoo 股市等聚合平台</td><td>方便但幾乎都是轉載</td><td>可看，但要認得出重複</td></tr>
+    </tbody>
+  </table></div></div>
+  <p class="footer-note">不用全追。原則：<b>官方一個＋快的一家＋深的一家</b>，三個來源就足夠覆蓋大部分需求。（表中對各來源的描述為課程整理之一般性觀察，特性可能變動。）</p>
+</section>
+
+<!-- 11 轉載 -->
+<section class="slide">
+  <div class="eyebrow">單元二・轉載現象</div>
+  <h2>同一件事，你會看到<span class="hl">四次</span></h2>
+  <div class="grow">
+    <div class="chain">
+      <div class="step"><div class="who">中央社原稿</div><div class="lag">09:00</div><div class="note">第一則</div></div>
+      <div class="step"><div class="who">Yahoo 轉載</div><div class="lag">09:20</div><div class="note">一字不改，換個網址</div></div>
+      <div class="step"><div class="who">A 媒體改寫</div><div class="lag">09:45</div><div class="note">標題改兩個字</div></div>
+      <div class="step"><div class="who">B 媒體再寫</div><div class="lag">11:00</div><div class="note">加了一段評論</div></div>
+    </div>
+    <div class="footer-note" style="max-width:40em">
+      為什麼要在意？兩個原因：<br>
+      ① <b>省時間</b>——認出「這是同一則」，後面三次直接跳過；<br>
+      ② <b>不被騙到</b>——四次曝光會讓你「感覺這消息很大」，其實只是轉載的回音。判斷熱度要數「事件」，不是數「篇數」（單元四詳講）。
+    </div>
+  </div>
+</section>
+
+<!-- 12 練習一 -->
+<section class="slide">
+  <div class="eyebrow">單元二・實戰練習 ①</div>
+  <h2>建立你的資訊源清單</h2>
+  <div class="grow"><div class="practice">
+    <div class="k">PRACTICE 01・約 30 分鐘</div>
+    <h3>今天做完這三件事</h3>
+    <ol>
+      <li>把「公開資訊觀測站」與「證交所重大訊息」頁面加入書籤，點進去看一遍今天的公告長什麼樣子。</li>
+      <li>依「官方一個＋快的一家＋深的一家」原則，選出你的三個固定來源，其餘 App 的推播通知全部關掉。</li>
+      <li>挑一則今天的財經新聞，Google 它的關鍵字——數一數同一件事總共被幾家媒體發了幾次。</li>
+    </ol>
+  </div></div>
+  <p class="footer-note">交付物：一張你的「資訊源清單」（來源 × 用途 × 查看時機）。之後每天就照這張清單看，不再漫遊。</p>
+</section>
+
+<!-- 13 單元三封面 -->
+<section class="slide unit-cover">
+  <div class="num">參</div>
+  <h1>一則新聞的 5 分鐘判讀 SOP</h1>
+  <div class="goal"><div class="k">本單元目標</div>
+    <p>拿到任何一則新聞，用<b>五個固定問題</b>在 5 分鐘內判斷：它重要嗎？可信嗎？還來得及嗎？——把直覺換成流程。</p></div>
+</section>
+
+<!-- 14 判讀五問 -->
+<section class="slide">
+  <div class="eyebrow">單元三・核心工具</div>
+  <h2>判讀五問</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>問題</th><th>在看什麼</th></tr></thead>
+    <tbody>
+      <tr><td><b>1</b></td><td><b>來源是誰？</b></td><td>官方公告？具名法人？還是「市場傳出」？來源決定可信度的上限</td></tr>
+      <tr><td><b>2</b></td><td><b>這是第一手嗎？</b></td><td>是原始事件，還是第 N 次轉載／舊聞重炒？發布時間對一下</td></tr>
+      <tr><td><b>3</b></td><td><b>是事實還是預期？</b></td><td>「營收成長 20%」是事實；「可望成長」「上看」是某人的預期</td></tr>
+      <tr><td><b>4</b></td><td><b>誰受益、誰受害？</b></td><td>這則消息對誰有利？發布的時機對誰有利？</td></tr>
+      <tr><td><b>5</b></td><td><b>價格反應了沒？</b></td><td>打開走勢圖：消息出來前股價就動了？那市場早知道了</td></tr>
+    </tbody>
+  </table></div></div>
+  <p class="footer-note">五問跑完不到 5 分鐘。大部分新聞會在第 1、2 問就被淘汰——這就是效率的來源。</p>
+</section>
+
+<!-- 15 標題陷阱 -->
+<section class="slide">
+  <div class="eyebrow">單元三・標題語言學</div>
+  <h2>這些字眼，各是什麼意思</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>標題字眼</th><th>翻譯成白話</th><th>處理方式</th></tr></thead>
+    <tbody>
+      <tr><td>「傳」「盛傳」「市場傳出」</td><td>沒有具名來源，可能是放話</td><td>等官方證實前，當作不存在</td></tr>
+      <tr><td>「可望」「有望」「挑戰」</td><td>某人的預期，不是事實</td><td>找出「某人」是誰，再決定信不信</td></tr>
+      <tr><td>「上看 XX 元」</td><td>通常引自某券商報告的目標價</td><td>下一頁專門講</td></tr>
+      <tr><td>「法人看好」</td><td>哪家法人？買了沒？常常查無此人</td><td>沒具名＝參考價值低</td></tr>
+      <tr><td>「獨家」「內幕」</td><td>行銷用語居多</td><td>內容照五問跑，不因獨家加分</td></tr>
+      <tr><td>「重訊」「公告」</td><td>有官方文件可查</td><td>去源頭看原文，30 秒</td></tr>
+    </tbody>
+  </table></div></div>
+</section>
+
+<!-- 16 目標價 -->
+<section class="slide">
+  <div class="eyebrow">單元三・專題</div>
+  <h2>「目標價上看 XX 元」怎麼讀</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">目標價是什麼</span>
+      <p>券商分析師依據<b>某組假設</b>（產業景氣、毛利率＝獲利佔營收比重、本益比＝股價是每股獲利的幾倍）推算的參考價。它是研究產出，<b>不是承諾，更不是預言</b>。</p></div>
+    <div class="card"><span class="tag a">看目標價的三個檢查</span>
+      <ul class="tick">
+        <li><b>日期</b>——報告是何時出的？新聞常引用數週前的舊報告</li>
+        <li><b>前提</b>——目標價背後的假設變了沒？</li>
+        <li><b>相對位置</b>——目標價 vs 現價的差距，跟同業比是高是低？</li>
+      </ul></div>
+  </div></div>
+  <div class="warn"><b>常見陷阱：</b>股價漲了一段之後，媒體才報導「上看 XX 元」——此時目標價與現價的空間往往已被走完。看到目標價新聞，第一件事永遠是打開走勢圖對日期。</div>
+  <p class="footer-note">以上為新聞判讀之一般性說明，非任何個股之買賣或進出場建議。</p>
+</section>
+
+<!-- 16b 法人買賣超 & 法說會 -->
+<section class="slide">
+  <div class="eyebrow">單元三・兩種高頻新聞</div>
+  <h2>「外資買超 X 億」、法說會怎麼讀</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag a">法人買賣超三看</span>
+      <ul class="tick">
+        <li><b>連續還是單日</b><span class="sub">——單日雜訊高；連續同方向才較有意義</span></li>
+        <li><b>金額佔成交比重</b><span class="sub">——同樣買 1 億，中小型股是大事、大型股是零頭</span></li>
+        <li><b>是事實、方向不保證延續</b><span class="sub">——「今天買」不等於「明天續買」，仍要跑五問</span></li>
+      </ul></div>
+    <div class="card"><span class="tag t">法說會三看</span>
+      <ul class="tick">
+        <li><b>財測 vs 去年同期</b><span class="sub">——成長還衰退？跟市場原本的預期比呢</span></li>
+        <li><b>怎麼解釋缺口</b><span class="sub">——把壞消息講成暫時性，還是坦白結構問題</span></li>
+        <li><b>Q&amp;A 被追問什麼</b><span class="sub">——法人反覆追問處，通常就是風險所在</span></li>
+      </ul></div>
+  </div></div>
+  <p class="footer-note">原則不變：法人動作與法說內容都是<b>「觸發研究」的材料，不是「觸發下單」的訊號</b>——拿到後一律回到判讀五問。</p>
+</section>
+
+<!-- 17 練習二 -->
+<section class="slide">
+  <div class="eyebrow">單元三・實戰練習 ②</div>
+  <h2>拆解今天的頭條</h2>
+  <div class="grow"><div class="practice">
+    <div class="k">PRACTICE 02・約 15 分鐘</div>
+    <h3>用五問拆一則今天的財經頭條</h3>
+    <ol>
+      <li>從你的資訊源清單挑今天任一則個股新聞。</li>
+      <li>把五問的答案逐條寫下來（來源／第一手？／事實或預期？／誰受益？／價格反應了沒？）。</li>
+      <li>最後寫一行結論：「這則新聞對我的意義是＿＿＿」——可以是「無意義，跳過」。</li>
+    </ol>
+  </div></div>
+  <p class="footer-note">連續做五天，你會發現八成的新聞結論都是「跳過」——而你以前每一則都認真讀完。這就是省下來的時間。</p>
+</section>
+
+<!-- 18 單元四封面 -->
+<section class="slide unit-cover">
+  <div class="num">肆</div>
+  <h1>熱度思維——市場在看哪裡</h1>
+  <div class="goal"><div class="k">本單元目標</div>
+    <p>學會從「新聞量的<b>變化</b>」讀出市場關注度，並理解為什麼「大家都在講」的時候，反而要提高警覺。</p></div>
+</section>
+
+<!-- 19 邊際變化 -->
+<section class="slide">
+  <div class="eyebrow">單元四・核心觀念</div>
+  <h2><span class="hl">變化</span>比數量重要</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><h3>大型股每天 30 則新聞</h3>
+      <p style="font-size:1.1em;margin-top:1vh"><b>不是訊號。</b></p>
+      <p>大型股天天有新聞，30 則是它的日常。絕對數量高，只代表它大，不代表有事。</p></div>
+    <div class="card" style="border-color:var(--accent)"><h3>中小型股從 0 則變 8 則</h3>
+      <p style="font-size:1.1em;margin-top:1vh"><b style="color:var(--accent)">這才是訊號。</b></p>
+      <p>平常沒人寫它，今天突然 8 則——市場的眼睛轉過來了。值得跑一次五問，查發生了什麼。</p></div>
+  </div></div>
+  <p class="footer-note">記法：<b>每支股票跟「自己的平常」比，不跟別支比。</b>異常＝相對自己常態的突然放大。（大型股＝市值大、對大盤指數影響大的股票；中小型股平常新聞少。進階課會教用程式自動算，這裡先建立肉眼版。）</p>
+</section>
+
+<!-- 20 擁擠 -->
+<section class="slide">
+  <div class="eyebrow">單元四・擁擠訊號</div>
+  <h2>人人都在講的時候，<br>好位置<span class="hl">多半已被坐滿</span></h2>
+  <div class="grow">
+    <div class="quote">
+      <p>「新聞熱度告訴你市場在看哪裡，<br>但擁擠的地方，好位置已經被坐滿。」</p>
+      <div class="by">熱度是「關注度」指標，不是「買進」指標。</div>
+    </div>
+    <div class="footer-note" style="max-width:40em">
+      實用判斷：當一個題材從財經版<b>擴散到綜合新聞、社群、通訊群組</b>——連平常不看盤的朋友都在問——通常代表知道的人已經夠多，追高的風險相對變大。（本頁為一般性風險觀念說明，非進出場建議。）
+    </div>
+  </div>
+</section>
+
+<!-- 21 反向現象 -->
+<section class="slide">
+  <div class="eyebrow">單元四・反直覺</div>
+  <h2>連續被推薦三天，<span class="hl">小心</span></h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag r">現象</span>
+      <p style="font-size:1.05em">同一支股票被<b>各類媒體與專欄</b>連續點名推薦<b>三天以上</b>——市場老手的經驗觀察是，後續表現常不如預期。（學界支持的是「高關注度標的後續報酬偏弱」的大方向，「三天」只是舉例門檻、非研究數字。）</p></div>
+    <div class="card"><span class="tag t">為什麼</span>
+      <p>連推三天＝關注度已擁擠＝想進場的人多半已進場。當一個題材反覆被強調，往往代表資訊已充分擴散——<b>重複次數本身，就是一個值得留意的資訊</b>。</p></div>
+  </div></div>
+  <div class="warn"><b>提醒：</b>這是一種市場「現象」，不是每次都準的定律，更非任何個股之買賣建議。它教我們的是：<b>推薦的「重複次數」本身是一個資訊</b>——而且方向常常跟你的直覺相反。</div>
+</section>
+
+<!-- 22 動手數熱度 -->
+<section class="slide">
+  <div class="eyebrow">單元四・工具</div>
+  <h2>不寫程式的「熱度紀錄表」</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>自選股</th><th>週一</th><th>週二</th><th>週三</th><th>週四</th><th>週五</th><th>觀察</th></tr></thead>
+    <tbody>
+      <tr><td>A 股票</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>常態，安靜</td></tr>
+      <tr class="emph"><td><b>B 股票</b></td><td>0</td><td>1</td><td><b>4</b></td><td><b>7</b></td><td><b>9</b></td><td><b>異常放大 → 跑五問</b></td></tr>
+      <tr><td>C 股票</td><td>12</td><td>10</td><td>11</td><td>13</td><td>12</td><td>大公司日常，忽略</td></tr>
+    </tbody>
+  </table></div></div>
+  <p class="footer-note"><b>數「事件數」的去重規則：</b>同一天講同一件事／同一份公告＝1 件；換角度評論但沒有新事實＝仍算同件；出現新的具名數字或新事件＝才 +1。（例：中央社原稿＋Yahoo 轉載＋兩家改寫＝仍是 1 件。）一週後你就有自己的熱度基準，Excel 或紙本都行。</p>
+</section>
+
+<!-- 23 練習三 -->
+<section class="slide">
+  <div class="eyebrow">單元四・實戰練習 ③</div>
+  <h2>追蹤一週熱度</h2>
+  <div class="grow"><div class="practice">
+    <div class="k">PRACTICE 03・每天 10 分鐘 × 5 天</div>
+    <h3>幫五檔自選股做熱度紀錄表</h3>
+    <ol>
+      <li>選五檔你本來就有在追的股票（建議混搭：兩檔大型股＋三檔中小型股）。</li>
+      <li>每天收盤後數各檔的「新聞事件數」（記得：轉載算同一件）。</li>
+      <li>週末回顧：哪一檔出現異常放大？它那幾天發生了什麼？股價怎麼反應？</li>
+    </ol>
+  </div></div>
+  <p class="footer-note">這個練習的真正目的：讓你「親手感受」大型股與中小型股的常態差多少——之後看到異常，你的直覺會自己響。</p>
+</section>
+
+<!-- 24 單元五封面 -->
+<section class="slide unit-cover">
+  <div class="num">伍</div>
+  <h1>每日例行流程</h1>
+  <div class="goal"><div class="k">本單元目標</div>
+    <p>把前四個單元組裝成<b>每天固定的三段流程</b>：盤前 30 分鐘、盤中兩原則、盤後 15 分鐘——效率提升的關鍵不是看更多，是<b>固定怎麼看</b>。</p></div>
+</section>
+
+<!-- 25 盤前 -->
+<section class="slide">
+  <div class="eyebrow">單元五・07:30–08:00</div>
+  <h2>盤前 30 分鐘 SOP</h2>
+  <div class="grow"><div class="tablewrap"><table>
+    <thead><tr><th>時間</th><th>做什麼</th><th>看哪裡</th></tr></thead>
+    <tbody>
+      <tr><td>07:30–07:35</td><td><b>官方重大訊息</b>：昨晚到今晨有哪些公告</td><td>公開資訊觀測站／證交所</td></tr>
+      <tr><td>07:35–07:45</td><td><b>隔夜國際盤</b>：美股收盤、重要個股與產業消息</td><td>你的「快的那一家」</td></tr>
+      <tr><td>07:45–07:55</td><td><b>自選股掃描</b>：逐檔搜一次，更新熱度紀錄表</td><td>固定來源＋熱度表</td></tr>
+      <tr><td>07:55–08:00</td><td><b>今日行事曆</b>：法說會、除權息（公司配息／配股日）、數據公布</td><td>行事曆（週末先做好）</td></tr>
+    </tbody>
+  </table></div></div>
+  <p class="footer-note">產出：一張便條大小的「今日重點」——最多三行。寫不出來就代表今天沒大事，這也是重要資訊。</p>
+</section>
+
+<!-- 26 盤中 -->
+<section class="slide">
+  <div class="eyebrow">單元五・09:00–13:30</div>
+  <h2>盤中只有兩條原則</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">原則一</span><h3>快訊只記錄，不行動</h3>
+      <p>盤中跳出的快訊，一律先丟進「待查清單」（手機備忘錄即可）。快訊的設計目的是讓你衝動，你的對策是<b>把它排隊</b>。</p></div>
+    <div class="card"><span class="tag t">原則二</span><h3>行動只來自盤前計畫</h3>
+      <p>今天要做的交易，早上 8 點前就該想好條件。盤中新聞若觸發了新想法——很好，<b>寫下來，盤後研究，明天再說</b>。</p></div>
+  </div></div>
+  <div class="warn"><b>為什麼這麼嚴格？</b>回想單元一：盤中快訊是資訊鏈的下游，你看到時價格常已在動。追進去，用的是最慢的資訊＋最激動的情緒——兩個最差的條件疊在一起。</div>
+</section>
+
+<!-- 27 盤後 -->
+<section class="slide">
+  <div class="eyebrow">單元五・14:00 之後</div>
+  <h2>盤後複盤 15 分鐘</h2>
+  <div class="grow"><ul class="tick">
+    <li><b>清「待查清單」</b><span class="sub">——盤中記下的快訊，逐條跑五問，八成會被淘汰</span></li>
+    <li><b>新聞 × 走勢對照</b><span class="sub">——今天的重點新聞，股價實際怎麼反應？跟你想的一樣嗎？</span></li>
+    <li><b>更新熱度紀錄表</b><span class="sub">——2 分鐘，數字填進去</span></li>
+    <li><b>一行交易日記</b><span class="sub">——「今天我因為什麼資訊做／沒做什麼」。就一行，貴在每天</span></li>
+  </ul></div>
+  <p class="footer-note">週末加碼 30 分鐘：本週熱度回顧＋下週行事曆（法說、除權息、經濟數據）。做完，下週的盤前 SOP 會快一倍。</p>
+</section>
+
+<!-- 27b 一年的新聞節奏 -->
+<section class="slide">
+  <div class="eyebrow">單元五・拉遠看</div>
+  <h2>一年的<span class="hl">新聞節奏</span></h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag a">財報潮（1・4・7・10 月）</span>
+      <p>季報、年報密集公布，加上月營收，<b>「事實類」新聞變多</b>：數字說話、預期兌現或落空。判讀重點放在五問的第三問（事實還是預期）與第五問（價格反應了沒）。</p></div>
+    <div class="card"><span class="tag t">空窗期（財報之間）</span>
+      <p>沒有硬數字，<b>「題材面」新聞主導</b>：傳聞、展望、概念股輪動特別多。這段時間更要小心「傳」「可望」「上看」這類預期性字眼（單元三）。</p></div>
+  </div></div>
+  <p class="footer-note">知道現在是「數字季」還是「故事季」，你對同一則新聞該給多少權重，心裡就有底。除權息旺季（7～8 月）也記得：除息當天股價技術性下跌，不是利空。</p>
+</section>
+
+<!-- 28 對照 -->
+<section class="slide">
+  <div class="eyebrow">單元五・前後對照</div>
+  <h2>同樣一小時，換到什麼</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag r">以前</span>
+      <ul class="tick x">
+        <li>全天零碎滑新聞 60 分鐘以上，被推播牽著走</li>
+        <li>同一件事讀四遍，重要公告反而漏掉</li>
+        <li>盤中看到利多，追高，收盤後悔</li>
+        <li>看了很多，卻說不出「今天的重點是什麼」</li>
+      </ul></div>
+    <div class="card"><span class="tag t">現在</span>
+      <ul class="tick">
+        <li>固定 45 分鐘（30＋15），時段自己選定</li>
+        <li>官方源頭先看，轉載一眼認出直接跳過</li>
+        <li>盤中只記錄不行動，決策全部來自計畫</li>
+        <li>每天產出三行重點＋一行日記，一週就能回顧</li>
+      </ul></div>
+  </div></div>
+</section>
+
+<!-- 29 練習四 -->
+<section class="slide">
+  <div class="eyebrow">單元五・實戰練習 ④</div>
+  <h2>照 SOP 跑三天</h2>
+  <div class="grow"><div class="practice">
+    <div class="k">PRACTICE 04・連續 3 個交易日</div>
+    <h3>完整執行盤前／盤中／盤後流程</h3>
+    <ol>
+      <li>連續三個交易日，照本單元的三段 SOP 執行，不要求完美，只求完整。</li>
+      <li>每天記錄：實際花了幾分鐘？哪一段最卡？</li>
+      <li>第三天結束後回答：跟以前比，你「漏掉重要消息」和「被無關消息干擾」的次數有沒有變化？</li>
+    </ol>
+  </div></div>
+  <p class="footer-note">SOP 前三天一定不順——第五天開始會突然變快。這跟健身一樣，是流程長進身體裡的過程。（時段可自選：盤前改成通勤前或前一晚都行；盤中原則本來就「不看盤也能做」，上班族反而最適合。）</p>
+</section>
+
+<!-- 30 單元六封面 -->
+<section class="slide unit-cover">
+  <div class="num">陸</div>
+  <h1>陷阱與驗證</h1>
+  <div class="goal"><div class="k">本單元目標</div>
+    <p>認識新聞讓散戶賠錢的<b>四大陷阱</b>，並建立一個讓自己越來越準的習慣：<b>事後驗證</b>。</p></div>
+</section>
+
+<!-- 31 四大陷阱 -->
+<section class="slide">
+  <div class="eyebrow">單元六・防身術</div>
+  <h2>新聞陷阱・防身對照卡</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag r">陷阱一・帶風向文</span>
+      <p>行文極度樂觀、只講願景不講風險、結尾暗示「還會更高」。<b>檢查：</b>作者是誰？同作者過去寫過什麼？有沒有利益揭露？</p></div>
+    <div class="card"><span class="tag r">陷阱二・舊聞重炒</span>
+      <p>把數週前的消息換個標題再發一次，常出現在股價正在動的時候。<b>檢查：</b>事件的「原始日期」，不是報導的發布日期。</p></div>
+    <div class="card"><span class="tag r">陷阱三・模糊來源</span>
+      <p>「市場傳出」「外資圈盛傳」「知情人士」——查無此人。<b>檢查：</b>套用五問第一問；等得到官方回應再說。</p></div>
+    <div class="card"><span class="tag r">陷阱四・推播追高</span>
+      <p>App 在股價大漲後才推播利多給你——演算法推的是「熱門」，不是「及時」。<b>檢查：</b>打開走勢圖，消息與價格誰先動。</p></div>
+    <div class="card"><span class="tag r">陷阱五・利多出盡</span>
+      <p>好消息在財報、法說「當天」才見報，股價卻不漲反跌——市場早把預期買進，事實兌現正是了結時點。<b>檢查：</b>這是「預期」還是「已成事實」？事實見報時，先看價格前幾天動了沒。</p></div>
+  </div></div>
+  <p class="footer-note">前四項是把單元三～五學的判讀，用在最常見的四種包裝上；第五項是新的「時機型」陷阱——印出來當防身卡。</p>
+</section>
+
+<!-- 32 驗證習慣 -->
+<section class="slide">
+  <div class="eyebrow">單元六・讓自己越來越準</div>
+  <h2>事後驗證：T+1 與 T+5</h2>
+  <div class="grow">
+    <p class="lede">方法很簡單：每次你覺得「這則新聞很重要」，就記下<b>日期、股票、你的預期</b>。隔 1 天與 5 天後回頭看——</p>
+    <div class="cards c3">
+      <div class="card"><h3>T+0 記錄</h3><p>新聞日期、標的、你當下的判讀（利多？利空？多大？）</p></div>
+      <div class="card"><h3>T+1 回顧</h3><p>隔天實際走勢如何？跟你的判讀一致嗎？</p></div>
+      <div class="card"><h3>T+5 回顧</h3><p>五天後呢？短線反應和延續性常常是兩回事</p></div>
+    </div>
+  </div>
+  <p class="footer-note">兩週後你會得到全市場最珍貴的東西：<b>「哪類新聞對我的標的真的有影響」的第一手統計</b>——不是聽來的，是你自己驗證的。專業機構做的事，本質上就是這個的放大版。</p>
+</section>
+
+<!-- 33 紀律清單 -->
+<section class="slide">
+  <div class="eyebrow">單元六・底線</div>
+  <h2>新聞 × 交易的紀律清單</h2>
+  <div class="grow"><ul class="tick">
+    <li><b>新聞觸發研究，永遠不直接觸發下單</b><span class="sub">——中間必經：五問 → 走勢對照 → 寫進計畫</span></li>
+    <li><b>盤中不因新聞改變計畫</b><span class="sub">——新想法一律排隊到盤後</span></li>
+    <li><b>沒有官方來源的重大消息，當作不存在</b><span class="sub">——寧可錯過，不可被騙</span></li>
+    <li><b>「人人都在講」是警訊，不是邀請</b><span class="sub">——擁擠處無好位</span></li>
+    <li><b>每一次「重要判讀」都留下紀錄</b><span class="sub">——T+1／T+5 驗證，讓經驗變成統計</span></li>
+  </ul></div>
+  <p class="footer-note">把這頁印出來貼在螢幕旁。紀律的價值不在市場好的時候，在你最想衝動的那一刻。</p>
+</section>
+
+<!-- 34 進階之路 -->
+<section class="slide">
+  <div class="eyebrow">下一步</div>
+  <h2>想讓這一切<span class="hl">全自動</span>？</h2>
+  <div class="grow"><div class="cards c2">
+    <div class="card"><span class="tag t">你現在的版本（手動）</span>
+      <ul class="tick">
+        <li>三個固定資訊源，每天人工掃</li>
+        <li>熱度紀錄表，每天手填</li>
+        <li>盤前 30 分鐘自己整理重點</li>
+      </ul></div>
+    <div class="card"><span class="tag a">進階課的版本（自動）</span>
+      <ul class="tick">
+        <li>程式自動抓 10+ 家媒體＋官方公告，自動去重</li>
+        <li>熱度自動計算，異常自動標紅</li>
+        <li>每天 7:30 電腦自動產出盤前報告</li>
+      </ul></div>
+  </div></div>
+  <p class="footer-note">進階課《用 Python 打造你的股市新聞情報系統》：本課的所有觀念不變，只是把你的雙手換成程式。<b>先把手動版練熟——知道系統在幫你做什麼的人，才用得好系統。</b></p>
+</section>
+
+<!-- 35 總結 -->
+<section class="slide">
+  <div class="eyebrow">總結</div>
+  <h2>帶走這六句話</h2>
+  <div class="grow"><ul class="tick">
+    <li><b>新聞是落後指標</b>——用它讀關注度，不是當買賣訊號</li>
+    <li><b>大事看第一手</b>——官方公告 30 秒，勝過三篇改寫報導</li>
+    <li><b>五問跑完再決定理不理</b>——八成的新聞值得跳過</li>
+    <li><b>變化比數量重要</b>——每支股票跟自己的常態比</li>
+    <li><b>固定流程勝過看更多</b>——盤前 30 分、盤中兩原則、盤後 15 分</li>
+    <li><b>驗證讓你越來越準</b>——T+1／T+5，把感覺變成統計</li>
+  </ul></div>
+</section>
+
+<!-- 36 結語 -->
+<section class="slide cover">
+  <div class="brand">散戶新聞實戰課</div>
+  <h1>市場不缺資訊，<br>缺的是<span class="hl">處理資訊的紀律</span></h1>
+  <p class="sub">從明天的盤前 30 分鐘開始。</p>
+  <p class="footer-note">免責聲明：本課程為投資知識與資訊素養教學，不構成任何證券投資分析、招攬或買賣建議。課程中提及之個股、情境均為教學示例。投資一定有風險，過往統計現象不代表未來表現，決策前請自行判斷或洽合法投顧。</p>
+</section>
+
+</div>
+
+<div class="hud">
+  <div class="count" id="count" aria-live="polite" aria-atomic="true">1 / 38</div>
+  <div class="btns">
+    <button id="theme" aria-label="切換深淺色主題">◐</button>
+    <button id="prev" aria-label="上一頁">←</button>
+    <button id="next" aria-label="下一頁">→</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var i=0,n=slides.length;
+  var bar=document.getElementById('bar'),count=document.getElementById('count');
+  slides.forEach(function(s){s.setAttribute('role','group');s.setAttribute('aria-roledescription','投影片');});
+  function go(k){
+    i=Math.max(0,Math.min(n-1,k));
+    slides.forEach(function(s,j){s.classList.toggle('active',j===i);});
+    bar.style.width=((i+1)/n*100)+'%';
+    count.textContent=(i+1)+' / '+n;
+  }
+  document.getElementById('next').onclick=function(){go(i+1)};
+  document.getElementById('prev').onclick=function(){go(i-1)};
+  document.getElementById('theme').onclick=function(){
+    var r=document.documentElement,cur=r.getAttribute('data-theme');
+    var dark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
+    r.setAttribute('data-theme',dark?'light':'dark');
+  };
+  document.addEventListener('keydown',function(e){
+    if(e.key===' '&&e.target&&e.target.tagName==='BUTTON')return;
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(i+1);}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(i-1);}
+    if(e.key==='Home'){e.preventDefault();go(0);}
+    if(e.key==='End'){e.preventDefault();go(n-1);}
+  });
+  var x0=null,y0=null;
+  document.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY;});
+  document.addEventListener('touchend',function(e){
+    if(x0===null)return;
+    var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5) go(i+(dx<0?1:-1));
+    x0=null;y0=null;
+  });
+  go(0);
+})();
+</script>
+</body>
+</html>

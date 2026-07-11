@@ -21,11 +21,13 @@ try:
     from .common import TAIPEI, fetch_article, norm_title
     from .cnyes import fetch as fetch_cnyes
     from .rss_sources import SOURCES as RSS_SOURCES, fetch_source as fetch_rss
+    from .sentiment import NEUTRAL, classify_news
     from .twse_announce import fetch as fetch_announce
 except ImportError:  # 直接以 python scripts/watch_intraday.py 執行
     from common import TAIPEI, fetch_article, norm_title
     from cnyes import fetch as fetch_cnyes
     from rss_sources import SOURCES as RSS_SOURCES, fetch_source as fetch_rss
+    from sentiment import NEUTRAL, classify_news
     from twse_announce import fetch as fetch_announce
 
 LOG_FILE: Path | None = None
@@ -184,6 +186,9 @@ def poll_once(
         tickers = match_tickers(text, alias_index)
         if item.get("ticker_hint") and item["ticker_hint"] not in tickers:
             tickers.insert(0, item["ticker_hint"])
+        sentiment = classify_news(
+            item.get("title", ""), item.get("summary", ""), item.get("content", "")
+        )
 
         event = build_event(
             item,
@@ -191,21 +196,28 @@ def poll_once(
             ingestion_iso=now.isoformat(),
             tickers=tickers,
             tags=tags,
+            sentiment=sentiment,
         )
         with open(stream_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(event, ensure_ascii=False) + "\n")
 
-        log(f"  + [{item['source']}] {item['title']}  tickers={tickers} tags={tags}")
+        senti_mark = (f" [{sentiment['label']}{sentiment['score']:+.1f}]"
+                      if sentiment["label"] != "中性" else "")
+        log(f"  + [{item['source']}]{senti_mark} {item['title']}  "
+            f"tickers={tickers} tags={tags}")
 
     return new_count
 
 
 def build_event(item: dict, event_id: str, ingestion_iso: str,
-                tickers: list[str], tags: list[str]) -> dict:
+                tickers: list[str], tags: list[str],
+                sentiment: dict | None = None) -> dict:
     """組事件串流記錄（純函式，可離線測試）。
 
     與日終 processed 的統一格式對齊：帶 author/summary/content，
     讓官方公告全文與 fetch_content 抓到的內文不會在串流路徑被丟棄。
+    sentiment 為 sentiment.classify_news 的輸出（利多/利空/中性），
+    未提供時記為中性，確保串流 schema 欄位恆存在。
     """
     return {
         "event_id": event_id,
@@ -220,6 +232,7 @@ def build_event(item: dict, event_id: str, ingestion_iso: str,
         "ingestion_ts": ingestion_iso,
         "tickers": tickers,
         "tags": tags,
+        "sentiment": sentiment or dict(NEUTRAL),
     }
 
 

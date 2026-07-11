@@ -4,6 +4,11 @@
 
 美日台股市新聞彙整與熱度量化系統。從台灣主流財經媒體爬取新聞，建立 PIT 正確的資料管線，量化個股熱度，協助判斷盤前重點。
 
+## 線上課程教材
+
+本專案已延伸為一門可販售的線上課程《用 Python 打造你的股市新聞情報系統》，
+完整教材（課綱、8 模組講師筆記、銷售頁文案、行銷計畫、營運與法遵手冊）見 [course/](course/README.md)。
+
 ## 兩個 Claude Skills
 
 - **`skills/get-stock-NEWS/`** — 新聞彙整（抓取、儲存、目標價抽取）
@@ -30,8 +35,10 @@ scripts/
 ├── cnyes.py / udn.py / ctee.py        # 即時抓取
 ├── rss_sources.py                      # RSS 通用爬蟲（多家媒體註冊表）
 ├── twse_announce.py                    # TWSE/TPEx 官方重大訊息
-├── watch_intraday.py                   # 盤中監看 + 事件串流（推播由下游 skill 負責）
+├── watch_intraday.py                   # 盤中監看 + 事件串流（每筆已標利多/利空）
 ├── process_day.py                      # 日終 ETL：raw + stream -> processed Parquet
+├── sentiment.py                        # 新聞利多/利空分類（財經詞庫規則法，純函式）
+├── sentiment_report.py                 # 利多/利空監測報告：個股多空榜 + JSON 輸出
 ├── common.py                           # 共用：台北時區正規化 / 標題去重 / HTTP retry
 ├── healthcheck.py                      # 一條指令探測所有來源存活狀態
 ├── site_map.py                          # 來源結構地圖驗證 + manifest（Phase 2 交付物）
@@ -56,11 +63,15 @@ PYTHONUTF8=1 python scripts/main.py
 # 指定日期
 PYTHONUTF8=1 python scripts/fetch_by_date.py 2026-05-13
 
-# 盤中監看（事件串流寫入 data/stream/，供下游推播/大腦 skill 讀取）
+# 盤中監看（事件串流寫入 data/stream/，每筆已標利多/利空，供下游推播/大腦 skill 讀取）
 PYTHONUTF8=1 python scripts/watch_intraday.py --interval 60 --market-hours-only --log-file data/state/watch.log
 
 # 日終 ETL：raw + stream -> processed Parquet
 PYTHONUTF8=1 python scripts/process_day.py
+
+# 新聞利多/利空監測報告（個股多空榜 + data/sentiment/{date}.json）
+PYTHONUTF8=1 python scripts/sentiment_report.py            # 今天
+PYTHONUTF8=1 python scripts/sentiment_report.py 2026-07-03 --tickers 2330,2454
 
 # 5 個月歷史背景抓取
 nohup python scripts/backfill_cnyes.py > backfill_cnyes.log 2>&1 &
