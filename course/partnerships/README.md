@@ -18,6 +18,10 @@
   - 內容與 HTML 版同步；改版時建議兩邊一起改
 - `pdf/永豐金課程平台合作提案.pdf` — HTML 版匯出的 PDF（寄送/離線用）
 - `pdf/永豐金課程平台合作提案-openslide.pdf` — open-slide 版匯出的 PDF
+- `pptx/永豐金課程平台合作提案.pptx` — **原生可編輯的 PowerPoint 版**（15 頁）
+  - 每個標題、內文、表格、色塊都是真正的 PPT 物件，可在 PowerPoint / Keynote / Google Slides 直接改字改色，非整頁圖片
+  - 字體：標題微軟雅黑體（Microsoft YaHei）、內文微軟正黑體（Microsoft JhengHei），皆為 Windows 內建字型
+  - 由 `pptx/build_pptx.py` 以 python-pptx 產生（`pip install python-pptx && python build_pptx.py`），改內容時改腳本再重跑即可
 
 ## 與其他簡報的分工
 
